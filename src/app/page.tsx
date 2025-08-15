@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransactionList } from '../components/TransactionList'
 import { SummaryCards } from '../components/SummaryCards'
-import { apiService, Transaction, CreateTransactionData, UpdateTransactionData } from '../services/api'
+import { apiService, Transaction, CreateTransactionData, UpdateTransactionData, Category } from '../services/api'
 
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -12,18 +12,21 @@ export default function Home() {
   const [showForm, setShowForm] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
 
   // Load data from API
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true)
-        const [transactionsData, summaryData] = await Promise.all([
+        const [transactionsData, summaryData, categoriesData] = await Promise.all([
           apiService.getTransactions(),
           apiService.getTransactionSummary(),
+          apiService.getCategories(),
         ])
         setTransactions(transactionsData.transactions)
         setSummary(summaryData)
+        setCategories(categoriesData)
       } catch (error) {
         console.error('Failed to load data:', error)
         // Fallback to empty state
@@ -34,6 +37,7 @@ export default function Home() {
           netAmount: 0,
           transactionCount: 0,
         })
+        setCategories([])
       } finally {
         setIsLoading(false)
       }
@@ -46,7 +50,14 @@ export default function Home() {
     try {
       setIsLoading(true)
       const newTransaction = await apiService.createTransaction(data)
-      setTransactions(prev => [newTransaction, ...prev])
+      
+      // Ensure the new transaction has categoryName populated
+      const transactionWithCategory = {
+        ...newTransaction,
+        categoryName: categories.find(cat => cat.id === newTransaction.categoryId)?.name
+      }
+      
+      setTransactions(prev => [transactionWithCategory, ...prev])
       
       // Refresh summary
       const summaryData = await apiService.getTransactionSummary()
@@ -66,10 +77,17 @@ export default function Home() {
 
     try {
       setIsLoading(true)
+      
       const updatedTransaction = await apiService.updateTransaction(editingTransaction.id, data)
       
+      // Ensure the updated transaction has categoryName populated
+      const transactionWithCategory = {
+        ...updatedTransaction,
+        categoryName: categories.find(cat => cat.id === updatedTransaction.categoryId)?.name
+      }
+      
       setTransactions(prev => 
-        prev.map(t => t.id === editingTransaction.id ? updatedTransaction : t)
+        prev.map(t => t.id === editingTransaction.id ? transactionWithCategory : t)
       )
       
       // Refresh summary
@@ -144,6 +162,7 @@ export default function Home() {
               onDelete={handleDeleteTransaction}
               onCreateNew={handleCreateNew}
               isLoading={isLoading}
+              categories={categories}
             />
           </div>
 

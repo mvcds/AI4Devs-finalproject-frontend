@@ -59,7 +59,7 @@ export interface CreateTransactionData {
   description: string
   amount: number
   date: string
-  categoryId?: string
+  categoryId: string
   notes?: string
   frequency: string
 }
@@ -68,7 +68,7 @@ export interface UpdateTransactionData {
   description?: string
   amount?: number
   date?: string
-  categoryId?: string
+  categoryId: string
   notes?: string
   frequency?: string
 }

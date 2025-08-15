@@ -13,6 +13,7 @@ interface TransactionListProps {
   onDelete: (id: string) => void
   onCreateNew: () => void
   isLoading?: boolean
+  categories?: Category[]
 }
 
 export const TransactionList: React.FC<TransactionListProps> = ({
@@ -21,27 +22,15 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   onDelete,
   onCreateNew,
   isLoading = false,
+  categories = [],
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all')
   const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [frequencyFilter, setFrequencyFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
 
-  // Fetch categories on component mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        const fetchedCategories = await apiService.getCategories()
-        setCategories(fetchedCategories)
-      } catch (error) {
-        console.error('Failed to load categories:', error)
-      }
-    }
 
-    fetchCategories()
-  }, [])
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||

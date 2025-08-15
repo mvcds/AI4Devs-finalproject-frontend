@@ -12,7 +12,7 @@ const transactionSchema = z.object({
   description: z.string().min(1, 'Description is required').max(255, 'Description too long'),
   amount: z.number().min(-999999999.99, 'Amount too low').max(999999999.99, 'Amount too high'),
   date: z.string().min(1, 'Date is required'),
-  categoryId: z.string().optional().refine((val) => !val || val === '' || /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), {
+  categoryId: z.string().min(1, 'Category is required').refine((val) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), {
     message: 'Invalid UUID format'
   }),
   notes: z.string().max(1000, 'Notes too long').optional(),
@@ -86,18 +86,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }, [initialData, categories, reset])
 
-  // Additional effect to handle categoryId specifically when categories load
-  useEffect(() => {
-    if (initialData?.categoryId && categories.length > 0) {
-      // Ensure the categoryId is set in the form when categories become available
-      const categoryExists = categories.some(cat => cat.id === initialData.categoryId)
-      if (categoryExists) {
-        // Use setValue to update just the categoryId field without triggering a full reset
-        setValue('categoryId', initialData.categoryId)
-      }
-    }
-  }, [initialData?.categoryId, categories, setValue])
-
   const watchedAmount = watch('amount')
   const watchedDescription = watch('description')
   const watchedDate = watch('date')
@@ -145,11 +133,14 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const isFormValid = watchedDescription && watchedDescription.trim().length > 0 && 
                      watchedAmount !== undefined && watchedAmount !== null && 
                      watchedDate && watchedDate.trim().length > 0 &&
+                     watch('categoryId') && watch('categoryId').trim().length > 0 &&
                      watch('frequency') && watch('frequency').trim().length > 0
 
   const handleFormSubmit = async (data: TransactionFormData) => {
     try {
       setIsSubmitting(true)
+      console.log('Form submitting with data:', data)
+      console.log('Selected categoryId:', data.categoryId)
       await onSubmit(data)
     } catch (error) {
       // Error is handled by the parent component
@@ -244,7 +235,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         {/* Category */}
         <div>
           <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-2">
-            Category
+            Category *
           </label>
           <select
             {...register('categoryId')}
