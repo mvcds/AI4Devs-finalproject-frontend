@@ -4,8 +4,8 @@ import React, { useState, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { Plus, Save, X } from 'lucide-react'
-import { apiService, Category } from '../services/api'
+import { Save, X } from 'lucide-react'
+import { apiService, Category, FREQUENCIES, FREQUENCY_LABELS } from '../services/api'
 
 // Form validation schema
 const transactionSchema = z.object({
@@ -16,6 +16,7 @@ const transactionSchema = z.object({
     message: 'Invalid UUID format'
   }),
   notes: z.string().max(1000, 'Notes too long').optional(),
+  frequency: z.string().min(1, 'Frequency is required'),
 })
 
 type TransactionFormData = z.infer<typeof transactionSchema>
@@ -31,7 +32,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
-  isLoading = false,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categories, setCategories] = useState<Category[]>([])
@@ -42,7 +42,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     register,
     handleSubmit,
     watch,
-    formState: { errors, isValid, isDirty },
+    formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
     mode: 'onChange',
@@ -52,6 +52,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       date: initialData?.date || new Date().toISOString().split('T')[0],
       categoryId: initialData?.categoryId || '',
       notes: initialData?.notes || '',
+      frequency: initialData?.frequency || FREQUENCIES.MONTH,
     },
   })
 
@@ -59,10 +60,39 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const watchedDescription = watch('description')
   const watchedDate = watch('date')
 
+  // Calculate monthly equivalent for recurring transactions
+  const calculateMonthlyEquivalent = (amount: number, frequency: string): number => {
+    switch (frequency) {
+      case FREQUENCIES.DAILY:
+        return amount * 30 // Approximate days in month
+      case FREQUENCIES.WEEK:
+        return amount * 4.33 // Average weeks per month (52/12)
+      case FREQUENCIES.FORTNIGHT:
+        return amount * 2.17 // Average fortnights per month (26/12)
+      case FREQUENCIES.MONTH:
+        return amount
+      case FREQUENCIES.TWO_MONTH:
+        return amount / 2
+      case FREQUENCIES.THREE_MONTH:
+        return amount / 3
+      case FREQUENCIES.QUARTER:
+        return amount / 3
+      case FREQUENCIES.HALF:
+        return amount / 6
+      case FREQUENCIES.YEAR:
+        return amount / 12
+      case FREQUENCIES.TWO_YEAR:
+        return amount / 24
+      default:
+        return amount
+    }
+  }
+
   // Custom validation check since react-hook-form isValid might not work as expected
   const isFormValid = watchedDescription && watchedDescription.trim().length > 0 && 
                      watchedAmount !== undefined && watchedAmount !== null && 
-                     watchedDate && watchedDate.trim().length > 0
+                     watchedDate && watchedDate.trim().length > 0 &&
+                     watch('frequency') && watch('frequency').trim().length > 0
 
   const handleFormSubmit = async (data: TransactionFormData) => {
     try {
@@ -189,6 +219,33 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
           )}
         </div>
+
+      </div>
+
+      {/* Frequency Fields - All transactions are recurring */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Frequency */}
+        <div>
+          <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-2">
+            Frequency *
+          </label>
+          <select
+            {...register('frequency')}
+            id="frequency"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {errors.frequency && (
+            <p className="mt-1 text-sm text-red-600">{errors.frequency.message}</p>
+          )}
+        </div>
+
+
       </div>
 
       {/* Notes */}
@@ -219,6 +276,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         <p className="text-sm text-gray-500 mt-1">
           {isIncome ? 'Income' : 'Expense'}
         </p>
+        
+        {/* Monthly Equivalent Preview - All transactions are recurring */}
+        {watchedAmount && (
+          <div className="mt-3 pt-3 border-t border-gray-200">
+            <p className="text-sm text-gray-600 mb-1">Monthly Equivalent:</p>
+            <p className="text-md font-medium text-blue-600">
+              ${calculateMonthlyEquivalent(watchedAmount, watch('frequency') || FREQUENCIES.MONTH).toFixed(2)} per month
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Form Actions */}

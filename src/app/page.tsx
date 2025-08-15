@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransactionList } from '../components/TransactionList'
-import { apiService, Transaction, TransactionSummary } from '../services/api'
+import { apiService, Transaction, TransactionSummary, CreateTransactionData, UpdateTransactionData } from '../services/api'
 
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
@@ -41,7 +41,7 @@ export default function Home() {
     loadData()
   }, [])
 
-  const handleCreateTransaction = async (data: any) => {
+  const handleCreateTransaction = async (data: CreateTransactionData) => {
     try {
       setIsLoading(true)
       const newTransaction = await apiService.createTransaction(data)
@@ -60,7 +60,7 @@ export default function Home() {
     }
   }
 
-  const handleEditTransaction = async (data: any) => {
+  const handleEditTransaction = async (data: UpdateTransactionData) => {
     if (!editingTransaction) return
 
     try {

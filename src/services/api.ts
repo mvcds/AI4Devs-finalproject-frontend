@@ -1,5 +1,34 @@
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://backend:3000'
 
+// Frequency constants matching the backend
+export const FREQUENCIES = {
+  DAILY: 'daily',
+  WEEK: 'week',
+  FORTNIGHT: 'fortnight',
+  MONTH: 'month',
+  TWO_MONTH: '2-month',
+  THREE_MONTH: '3-month',
+  QUARTER: 'quarter',
+  HALF: 'half',
+  YEAR: 'year',
+  TWO_YEAR: '2-year',
+} as const
+
+export type Frequency = typeof FREQUENCIES[keyof typeof FREQUENCIES]
+
+export const FREQUENCY_LABELS: Record<Frequency, string> = {
+  [FREQUENCIES.DAILY]: 'Daily',
+  [FREQUENCIES.WEEK]: 'Week',
+  [FREQUENCIES.FORTNIGHT]: 'Fortnight',
+  [FREQUENCIES.MONTH]: 'Month',
+  [FREQUENCIES.TWO_MONTH]: '2-Month',
+  [FREQUENCIES.THREE_MONTH]: '3-Month',
+  [FREQUENCIES.QUARTER]: 'Quarter',
+  [FREQUENCIES.HALF]: 'Half',
+  [FREQUENCIES.YEAR]: 'Year',
+  [FREQUENCIES.TWO_YEAR]: '2-Year',
+}
+
 export interface Transaction {
   id: string
   description: string
@@ -8,6 +37,8 @@ export interface Transaction {
   categoryId?: string
   categoryName?: string
   notes?: string
+  frequency?: string
+  monthlyEquivalent?: string
   userId: string
   createdAt: string
   updatedAt: string
@@ -30,6 +61,7 @@ export interface CreateTransactionData {
   date: string
   categoryId?: string
   notes?: string
+  frequency: string
 }
 
 export interface UpdateTransactionData {
@@ -38,6 +70,7 @@ export interface UpdateTransactionData {
   date?: string
   categoryId?: string
   notes?: string
+  frequency?: string
 }
 
 export interface TransactionSummary {

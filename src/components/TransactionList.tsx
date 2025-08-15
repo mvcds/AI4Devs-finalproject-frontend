@@ -2,17 +2,10 @@
 
 import React, { useState } from 'react'
 import { Edit, Trash2, Plus, Filter, Search } from 'lucide-react'
+import { Transaction as ApiTransaction } from '../services/api'
 
-interface Transaction {
-  id: string
-  description: string
-  amount: number
-  date: string
-  categoryName?: string
-  notes?: string
-  createdAt: string
-  updatedAt: string
-}
+// Use the API service Transaction interface
+type Transaction = ApiTransaction
 
 interface TransactionListProps {
   transactions: Transaction[]
@@ -130,6 +123,8 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   <option value="expense">Expense</option>
                 </select>
               </div>
+              
+
             </div>
           </div>
         )}
@@ -174,7 +169,21 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     {transaction.notes && (
                       <span className="truncate max-w-xs">{transaction.notes}</span>
                     )}
+                    {transaction.frequency && (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        🔄 {transaction.frequency}
+                      </span>
+                    )}
                   </div>
+                  
+                  {/* Monthly Equivalent - All transactions are recurring */}
+                  {transaction.monthlyEquivalent && (
+                    <div className="mt-2 text-sm text-gray-500">
+                      <span className="font-medium">Monthly equivalent:</span> {transaction.monthlyEquivalent}
+                    </div>
+                  )}
+                  
+
                 </div>
 
                 <div className="flex items-center gap-3">
