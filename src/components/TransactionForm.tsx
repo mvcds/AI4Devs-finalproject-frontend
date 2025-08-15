@@ -42,6 +42,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     register,
     handleSubmit,
     watch,
+    reset,
+    setValue,
     formState: { errors },
   } = useForm<TransactionFormData>({
     resolver: zodResolver(transactionSchema),
@@ -56,35 +58,73 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     },
   })
 
+  // Reset form when initialData changes (for edit mode)
+  // Wait for categories to be loaded before resetting to ensure categoryId is properly set
+  useEffect(() => {
+    if (initialData && categories.length > 0) {
+      reset({
+        description: initialData.description || '',
+        amount: initialData.amount || 0,
+        date: initialData.date || new Date().toISOString().split('T')[0],
+        categoryId: initialData.categoryId || '',
+        notes: initialData.notes || '',
+        frequency: initialData.frequency || FREQUENCIES.MONTH,
+      })
+    }
+  }, [initialData, categories, reset])
+
+  // Additional effect to handle categoryId specifically when categories load
+  useEffect(() => {
+    if (initialData?.categoryId && categories.length > 0) {
+      // Ensure the categoryId is set in the form when categories become available
+      const categoryExists = categories.some(cat => cat.id === initialData.categoryId)
+      if (categoryExists) {
+        // Use setValue to update just the categoryId field without triggering a full reset
+        setValue('categoryId', initialData.categoryId)
+      }
+    }
+  }, [initialData?.categoryId, categories, setValue])
+
   const watchedAmount = watch('amount')
   const watchedDescription = watch('description')
   const watchedDate = watch('date')
 
   // Calculate monthly equivalent for recurring transactions
   const calculateMonthlyEquivalent = (amount: number, frequency: string): number => {
+    // Ensure amount is a valid number
+    const numAmount = Number(amount);
+    if (isNaN(numAmount)) {
+      return 0;
+    }
+    
+    // Safety check for invalid frequency
+    if (!frequency || typeof frequency !== 'string') {
+      return numAmount;
+    }
+
     switch (frequency) {
       case FREQUENCIES.DAILY:
-        return amount * 30 // Approximate days in month
+        return numAmount * 30 // Approximate days in month
       case FREQUENCIES.WEEK:
-        return amount * 4.33 // Average weeks per month (52/12)
+        return numAmount * 4.33 // Average weeks per month (52/12)
       case FREQUENCIES.FORTNIGHT:
-        return amount * 2.17 // Average fortnights per month (26/12)
+        return numAmount * 2.17 // Average fortnights per month (26/12)
       case FREQUENCIES.MONTH:
-        return amount
+        return numAmount
       case FREQUENCIES.TWO_MONTH:
-        return amount / 2
+        return numAmount / 2
       case FREQUENCIES.THREE_MONTH:
-        return amount / 3
+        return numAmount / 3
       case FREQUENCIES.QUARTER:
-        return amount / 3
+        return numAmount / 3
       case FREQUENCIES.HALF:
-        return amount / 6
+        return numAmount / 6
       case FREQUENCIES.YEAR:
-        return amount / 12
+        return numAmount / 12
       case FREQUENCIES.TWO_YEAR:
-        return amount / 24
+        return numAmount / 24
       default:
-        return amount
+        return numAmount
     }
   }
 
@@ -278,11 +318,16 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </p>
         
         {/* Monthly Equivalent Preview - All transactions are recurring */}
-        {watchedAmount && (
+        {watchedAmount !== undefined && watchedAmount !== null && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Monthly Equivalent:</p>
             <p className="text-md font-medium text-blue-600">
-              ${calculateMonthlyEquivalent(watchedAmount, watch('frequency') || FREQUENCIES.MONTH).toFixed(2)} per month
+              ${(() => {
+                const amount = Number(watchedAmount) || 0;
+                const freq = watch('frequency') || FREQUENCIES.MONTH;
+                const result = calculateMonthlyEquivalent(amount, freq);
+                return (typeof result === 'number' ? result : 0).toFixed(2);
+              })()} per month
             </p>
           </div>
         )}
