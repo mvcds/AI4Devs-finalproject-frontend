@@ -95,7 +95,18 @@ class ApiService {
       throw new Error(`API request failed: ${response.status} ${response.statusText}`)
     }
 
-    return response.json()
+    // Handle responses without body (like DELETE operations)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T
+    }
+
+    // Only try to parse JSON if there's content
+    const contentType = response.headers.get('content-type')
+    if (contentType && contentType.includes('application/json')) {
+      return response.json()
+    }
+
+    return undefined as T
   }
 
   // Transaction endpoints
@@ -140,7 +151,7 @@ class ApiService {
   }
 
   async deleteTransaction(id: string): Promise<void> {
-    return this.request(`/api/transactions/${id}`, {
+    await this.request(`/api/transactions/${id}`, {
       method: 'DELETE',
     })
   }
