@@ -3,11 +3,12 @@
 import React, { useState, useEffect } from 'react'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransactionList } from '../components/TransactionList'
-import { apiService, Transaction, TransactionSummary, CreateTransactionData, UpdateTransactionData } from '../services/api'
+import { SummaryCards } from '../components/SummaryCards'
+import { apiService, Transaction, CreateTransactionData, UpdateTransactionData } from '../services/api'
 
 export default function Home() {
   const [transactions, setTransactions] = useState<Transaction[]>([])
-  const [summary, setSummary] = useState<TransactionSummary | null>(null)
+  const [summary, setSummary] = useState<import('../components/SummaryCards').TransactionSummary | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
   const [isLoading, setIsLoading] = useState(false)
@@ -131,30 +132,7 @@ export default function Home() {
         </div>
 
         {/* Summary Cards */}
-        {!showForm && summary && (
-          <div className="mb-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Income</h3>
-              <p className="mt-2 text-3xl font-bold text-green-600">
-                ${summary.totalIncome.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Total Expenses</h3>
-              <p className="mt-2 text-3xl font-bold text-red-600">
-                ${summary.totalExpenses.toFixed(2)}
-              </p>
-            </div>
-            <div className="bg-white p-6 rounded-lg shadow">
-              <h3 className="text-sm font-medium text-gray-500">Net Amount</h3>
-              <p className={`mt-2 text-3xl font-bold ${
-                summary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'
-              }`}>
-                ${summary.netAmount.toFixed(2)}
-              </p>
-            </div>
-          </div>
-        )}
+        <SummaryCards summary={summary} />
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
