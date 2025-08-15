@@ -24,7 +24,7 @@ export const FREQUENCY_LABELS: Record<Frequency, string> = {
   [FREQUENCIES.TWO_MONTH]: '2-Month',
   [FREQUENCIES.THREE_MONTH]: '3-Month',
   [FREQUENCIES.QUARTER]: 'Quarter',
-  [FREQUENCIES.HALF]: 'Half',
+  [FREQUENCIES.HALF]: 'Half Year',
   [FREQUENCIES.YEAR]: 'Year',
   [FREQUENCIES.TWO_YEAR]: '2-Year',
 }
@@ -115,6 +115,7 @@ class ApiService {
     limit?: number
     type?: 'income' | 'expense'
     categoryId?: string
+    frequency?: string
     startDate?: string
     endDate?: string
   }): Promise<{ transactions: Transaction[]; total: number; page: number; limit: number }> {
@@ -123,6 +124,7 @@ class ApiService {
     if (params?.limit) searchParams.append('limit', params.limit.toString())
     if (params?.type) searchParams.append('type', params.type)
     if (params?.categoryId) searchParams.append('categoryId', params.categoryId)
+    if (params?.frequency) searchParams.append('frequency', params.frequency)
     if (params?.startDate) searchParams.append('startDate', params.startDate)
     if (params?.endDate) searchParams.append('endDate', params.endDate)
 

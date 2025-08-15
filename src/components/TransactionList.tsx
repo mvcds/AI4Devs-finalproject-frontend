@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Edit, Trash2, Plus, Filter, Search } from 'lucide-react'
-import { Transaction as ApiTransaction } from '../services/api'
+import { Transaction as ApiTransaction, Category, apiService, FREQUENCIES, FREQUENCY_LABELS } from '../services/api'
 
 // Use the API service Transaction interface
 type Transaction = ApiTransaction
@@ -24,14 +24,33 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [frequencyFilter, setFrequencyFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [categories, setCategories] = useState<Category[]>([])
+
+  // Fetch categories on component mount
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const fetchedCategories = await apiService.getCategories()
+        setCategories(fetchedCategories)
+      } catch (error) {
+        console.error('Failed to load categories:', error)
+      }
+    }
+
+    fetchCategories()
+  }, [])
 
   const filteredTransactions = transactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          (transaction.notes && transaction.notes.toLowerCase().includes(searchTerm.toLowerCase()))
     const transactionType = transaction.amount > 0 ? 'income' : 'expense'
     const matchesType = typeFilter === 'all' || transactionType === typeFilter
-    return matchesSearch && matchesType
+    const matchesCategory = categoryFilter === 'all' || transaction.categoryId === categoryFilter
+    const matchesFrequency = frequencyFilter === 'all' || transaction.frequency === frequencyFilter
+    return matchesSearch && matchesType && matchesCategory && matchesFrequency
   })
 
   const formatAmount = (amount: number) => {
@@ -123,8 +142,38 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   <option value="expense">Expense</option>
                 </select>
               </div>
-              
 
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Categories</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Frequency</label>
+                <select
+                  value={frequencyFilter}
+                  onChange={(e) => setFrequencyFilter(e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="all">All Frequencies</option>
+                  {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
           </div>
         )}
@@ -138,7 +187,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
           </div>
           <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions found</h3>
           <p className="text-gray-600">
-            {searchTerm || typeFilter !== 'all' 
+            {searchTerm || typeFilter !== 'all' || categoryFilter !== 'all' || frequencyFilter !== 'all'
               ? 'Try adjusting your search or filters'
               : 'Create your first transaction to get started'
             }
@@ -157,9 +206,13 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     <h3 className="text-lg font-medium text-gray-900">
                       {transaction.description}
                     </h3>
-                    {transaction.categoryName && (
+                    {transaction.categoryName ? (
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                         {transaction.categoryName}
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-600">
+                        No Category
                       </span>
                     )}
                   </div>
@@ -171,7 +224,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                     )}
                     {transaction.frequency && (
                       <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
-                        🔄 {transaction.frequency}
+                        🔄 {FREQUENCY_LABELS[transaction.frequency as keyof typeof FREQUENCY_LABELS] || transaction.frequency}
                       </span>
                     )}
                   </div>
