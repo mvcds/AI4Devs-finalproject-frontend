@@ -58,18 +58,31 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     },
   })
 
-  // Reset form when initialData changes (for edit mode)
+  // Reset form when initialData changes (for edit mode) or when switching to create mode
   // Wait for categories to be loaded before resetting to ensure categoryId is properly set
   useEffect(() => {
-    if (initialData && categories.length > 0) {
-      reset({
-        description: initialData.description || '',
-        amount: initialData.amount || 0,
-        date: initialData.date || new Date().toISOString().split('T')[0],
-        categoryId: initialData.categoryId || '',
-        notes: initialData.notes || '',
-        frequency: initialData.frequency || FREQUENCIES.MONTH,
-      })
+    if (categories.length > 0) {
+      if (initialData) {
+        // Edit mode: populate form with transaction data
+        reset({
+          description: initialData.description || '',
+          amount: initialData.amount || 0,
+          date: initialData.date || new Date().toISOString().split('T')[0],
+          categoryId: initialData.categoryId || '',
+          notes: initialData.notes || '',
+          frequency: initialData.frequency || FREQUENCIES.MONTH,
+        })
+      } else {
+        // Create mode: reset form to default values
+        reset({
+          description: '',
+          amount: 0,
+          date: new Date().toISOString().split('T')[0],
+          categoryId: '',
+          notes: '',
+          frequency: FREQUENCIES.MONTH,
+        })
+      }
     }
   }, [initialData, categories, reset])
 
