@@ -1,5 +1,6 @@
 import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { TransactionForm } from '../TransactionForm'
 import { apiService } from '../../services/api'
 
@@ -7,6 +8,30 @@ import { apiService } from '../../services/api'
 jest.mock('../../services/api', () => ({
   apiService: {
     getCategories: jest.fn(),
+  },
+  FREQUENCIES: {
+    DAILY: 'daily',
+    WEEK: 'week',
+    FORTNIGHT: 'fortnight',
+    MONTH: 'month',
+    TWO_MONTH: '2-month',
+    THREE_MONTH: '3-month',
+    QUARTER: 'quarter',
+    HALF: 'half',
+    YEAR: 'year',
+    TWO_YEAR: '2-year',
+  },
+  FREQUENCY_LABELS: {
+    'daily': 'Daily',
+    'week': 'Week',
+    'fortnight': 'Fortnight',
+    'month': 'Month',
+    '2-month': '2-Month',
+    '3-month': '3-Month',
+    'quarter': 'Quarter',
+    'half': 'Half Year',
+    'year': 'Year',
+    '2-year': '2-Year',
   },
 }))
 
@@ -21,8 +46,8 @@ describe('TransactionForm', () => {
     jest.clearAllMocks()
     // Mock successful categories fetch by default
     mockApiService.getCategories.mockResolvedValue([
-      { id: '1', name: 'Salary', flow: 'income', color: '#00ff00', description: 'Salary income', createdAt: '2024-01-01', updatedAt: '2024-01-01' },
-      { id: '2', name: 'Food', flow: 'expense', color: '#ff0000', description: 'Food expenses', createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+      { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Salary', flow: 'income', color: '#00ff00', description: 'Salary income', createdAt: '2024-01-01', updatedAt: '2024-01-01' },
+      { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Food', flow: 'expense', color: '#ff0000', description: 'Food expenses', createdAt: '2024-01-01', updatedAt: '2024-01-01' },
     ])
   })
 
@@ -133,6 +158,8 @@ describe('TransactionForm', () => {
   })
 
   it('shows amount preview based on amount', async () => {
+    const user = userEvent.setup()
+    
     render(
       <TransactionForm
         onSubmit={mockOnSubmit}
@@ -146,16 +173,35 @@ describe('TransactionForm', () => {
     })
 
     const amountInput = screen.getByLabelText(/amount/i)
+    const descriptionInput = screen.getByLabelText(/description/i)
+    const dateInput = screen.getByLabelText(/date/i)
+    const categorySelect = screen.getByLabelText(/category/i)
+    const frequencySelect = screen.getByLabelText(/frequency/i)
+    
+    // Fill required fields first
+    await user.type(descriptionInput, 'Test Transaction')
+    await user.clear(dateInput)
+    await user.type(dateInput, '2024-01-15')
+    
+    // Select category and frequency using fireEvent for select elements
+    fireEvent.change(categorySelect, { target: { value: '550e8400-e29b-41d4-a716-446655440000' } })
+    fireEvent.change(frequencySelect, { target: { value: 'month' } })
     
     // Test negative amount (expense)
-    fireEvent.change(amountInput, { target: { value: '-150.50' } })
-    expect(screen.getByText('-$150.50')).toBeInTheDocument()
-    expect(screen.getByText('Expense')).toBeInTheDocument()
+    await user.clear(amountInput)
+    await user.type(amountInput, '-150.50')
+    await waitFor(() => {
+      expect(screen.getByText('-$150.50')).toBeInTheDocument()
+      expect(screen.getByText('Expense')).toBeInTheDocument()
+    })
 
     // Test positive amount (income)
-    fireEvent.change(amountInput, { target: { value: '200.75' } })
-    expect(screen.getByText('+$200.75')).toBeInTheDocument()
-    expect(screen.getByText('Income')).toBeInTheDocument()
+    await user.clear(amountInput)
+    await user.type(amountInput, '200.75')
+    await waitFor(() => {
+      expect(screen.getByText('+$200.75')).toBeInTheDocument()
+      expect(screen.getByText('Income')).toBeInTheDocument()
+    })
   })
 
   it('disables submit button when form is invalid', async () => {
@@ -176,6 +222,8 @@ describe('TransactionForm', () => {
   })
 
   it('enables submit button when form is valid', async () => {
+    const user = userEvent.setup()
+    
     render(
       <TransactionForm
         onSubmit={mockOnSubmit}
@@ -189,15 +237,15 @@ describe('TransactionForm', () => {
     })
 
     // Fill in required fields
-    fireEvent.change(screen.getByLabelText(/description/i), {
-      target: { value: 'Test Transaction' },
-    })
-    fireEvent.change(screen.getByLabelText(/amount/i), {
-      target: { value: '100' },
-    })
-    fireEvent.change(screen.getByLabelText(/date/i), {
-      target: { value: '2024-01-15' },
-    })
+    await user.type(screen.getByLabelText(/description/i), 'Test Transaction')
+    await user.clear(screen.getByLabelText(/amount/i))
+    await user.type(screen.getByLabelText(/amount/i), '100')
+    await user.clear(screen.getByLabelText(/date/i))
+    await user.type(screen.getByLabelText(/date/i), '2024-01-15')
+    
+    // Select category and frequency using fireEvent for select elements
+    fireEvent.change(screen.getByLabelText(/category/i), { target: { value: '550e8400-e29b-41d4-a716-446655440000' } })
+    fireEvent.change(screen.getByLabelText(/frequency/i), { target: { value: 'month' } })
 
     await waitFor(() => {
       const submitButton = screen.getByText('Save Transaction')
@@ -206,6 +254,8 @@ describe('TransactionForm', () => {
   })
 
   it('calls onSubmit with form data when submitted', async () => {
+    const user = userEvent.setup()
+    
     render(
       <TransactionForm
         onSubmit={mockOnSubmit}
@@ -219,15 +269,15 @@ describe('TransactionForm', () => {
     })
 
     // Fill in required fields
-    fireEvent.change(screen.getByLabelText(/description/i), {
-      target: { value: 'Test Transaction' },
-    })
-    fireEvent.change(screen.getByLabelText(/amount/i), {
-      target: { value: '100' },
-    })
-    fireEvent.change(screen.getByLabelText(/date/i), {
-      target: { value: '2024-01-15' },
-    })
+    await user.type(screen.getByLabelText(/description/i), 'Test Transaction')
+    await user.clear(screen.getByLabelText(/amount/i))
+    await user.type(screen.getByLabelText(/amount/i), '100')
+    await user.clear(screen.getByLabelText(/date/i))
+    await user.type(screen.getByLabelText(/date/i), '2024-01-15')
+    
+    // Select category and frequency using fireEvent for select elements
+    fireEvent.change(screen.getByLabelText(/category/i), { target: { value: '550e8400-e29b-41d4-a716-446655440000' } })
+    fireEvent.change(screen.getByLabelText(/frequency/i), { target: { value: 'month' } })
 
     // Wait for form to be valid
     await waitFor(() => {
@@ -237,16 +287,15 @@ describe('TransactionForm', () => {
 
     const submitButton = screen.getByText('Save Transaction')
     
-    await act(async () => {
-      fireEvent.click(submitButton)
-    })
+    await user.click(submitButton)
 
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith({
         description: 'Test Transaction',
         amount: 100,
         date: '2024-01-15',
-        categoryId: '',
+        categoryId: '550e8400-e29b-41d4-a716-446655440000',
+        frequency: 'month',
         notes: '',
       })
     })
