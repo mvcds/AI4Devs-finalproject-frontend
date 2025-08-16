@@ -1,20 +1,18 @@
-version: '3.8'
-
 services:
   app:
     build:
       context: .
       dockerfile: Dockerfile
     ports:
-      - '${FRONTEND_PORT}:3000'
+      - '${FRONTEND_PORT:-3001}:${FRONTEND_PORT:-3001}'
     environment:
-      - NODE_ENV=${NODE_ENV}
-      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT}
+      - NODE_ENV=${NODE_ENV:-development}
+      - BACKEND_PORT=${BACKEND_PORT:-3000}
+      - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT:-3000}
+      - FRONTEND_PORT=${FRONTEND_PORT:-3001}
     volumes:
       - .:/app
       - /app/node_modules
       - /app/.next
     command: npm run dev
     restart: unless-stopped
-    env_file:
-      - .env
