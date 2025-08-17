@@ -8,6 +8,6 @@ RUN npm install
 
 COPY . .
 
-EXPOSE ${PORT:-3001}
+EXPOSE ${FRONTEND_PORT:-3001}
 
-CMD ["npm", "run", "dev"]
+CMD ["sh", "-c", "npm run build && npm run start"]
