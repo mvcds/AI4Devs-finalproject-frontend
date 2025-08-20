@@ -1,5 +1,5 @@
 {
-  "name": "frontend-temp",
+  "name": "ai4dev-finalproject-mvcds-frontend",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,9 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "register:add": "npm install ai4devs-api-client --registry http://verdaccio:4873",
+    "register:update": "npm update ai4devs-api-client --registry http://verdaccio:4873"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -25,7 +27,6 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-    "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.2",
@@ -34,11 +35,15 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/testing-library__jest-dom": "^5.14.9",
+    "autoprefixer": "^10.4.0",
     "eslint": "^9",
     "eslint-config-next": "15.4.6",
     "jest": "^29.7.0",
     "jest-environment-jsdom": "^29.7.0",
-    "tailwindcss": "^4",
+    "tailwindcss": "^3.4.0",
     "typescript": "^5"
+  },
+  "optionalDependencies": {
+    "ai4devs-api-client": "~1.0.0"
   }
 }

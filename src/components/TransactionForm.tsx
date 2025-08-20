@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { Save, X } from 'lucide-react'
-import { apiService, Category, FREQUENCIES, FREQUENCY_LABELS } from '../services/api'
+import { categoriesApi, CategoryResponseDto, FREQUENCIES, FREQUENCY_LABELS } from '@/services/api'
 
 // Form validation schema
 const transactionSchema = z.object({
@@ -19,7 +19,7 @@ const transactionSchema = z.object({
   frequency: z.string().min(1, 'Frequency is required'),
 })
 
-type TransactionFormData = z.infer<typeof transactionSchema>
+export type TransactionFormData = z.infer<typeof transactionSchema>
 
 interface TransactionFormProps {
   onSubmit: (data: TransactionFormData) => Promise<void>
@@ -34,7 +34,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   initialData,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
+  const [categories, setCategories] = useState<CategoryResponseDto[]>([])
   const [isLoadingCategories, setIsLoadingCategories] = useState(true)
   const [categoriesError, setCategoriesError] = useState<string | null>(null)
 
@@ -159,7 +159,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       try {
         setIsLoadingCategories(true)
         setCategoriesError(null)
-        const fetchedCategories = await apiService.getCategories()
+        const fetchedCategories = await categoriesApi.categoryControllerFindAll()
         setCategories(fetchedCategories)
       } catch (error) {
         setCategoriesError('Failed to load categories')

@@ -4,15 +4,16 @@ import React, { useState, useEffect } from 'react'
 import { TransactionForm } from '../components/TransactionForm'
 import { TransactionList } from '../components/TransactionList'
 import { SummaryCards } from '../components/SummaryCards'
-import { apiService, Transaction, CreateTransactionData, UpdateTransactionData, Category } from '../services/api'
+import { transactionsApi, categoriesApi, TransactionResponseDto, CreateTransactionDto, UpdateTransactionDto, CategoryResponseDto } from '@/services/api'
+import type { TransactionFormData } from '../components/TransactionForm'
 
 export default function Home() {
-  const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [transactions, setTransactions] = useState<TransactionResponseDto[]>([])
   const [summary, setSummary] = useState<import('../components/SummaryCards').TransactionSummary | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null)
+  const [editingTransaction, setEditingTransaction] = useState<TransactionResponseDto | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
+  const [categories, setCategories] = useState<CategoryResponseDto[]>([])
 
   // Load data from API
   useEffect(() => {
@@ -20,12 +21,17 @@ export default function Home() {
       try {
         setIsLoading(true)
         const [transactionsData, summaryData, categoriesData] = await Promise.all([
-          apiService.getTransactions(),
-          apiService.getTransactionSummary(),
-          apiService.getCategories(),
+          transactionsApi.transactionControllerFindAll(),
+          transactionsApi.transactionControllerGetSummary(),
+          categoriesApi.categoryControllerFindAll(),
         ])
-        setTransactions(transactionsData.transactions)
-        setSummary(summaryData)
+        setTransactions(transactionsData.transactions || [])
+        setSummary({
+          totalIncome: summaryData.totalIncome || 0,
+          totalExpenses: summaryData.totalExpenses || 0,
+          netAmount: summaryData.netAmount || 0,
+          transactionCount: summaryData.transactionCount || 0
+        })
         setCategories(categoriesData)
       } catch (error) {
         console.error('Failed to load data:', error)
@@ -46,10 +52,15 @@ export default function Home() {
     loadData()
   }, [])
 
-  const handleCreateTransaction = async (data: CreateTransactionData) => {
+  const handleCreateTransaction = async (data: TransactionFormData) => {
     try {
       setIsLoading(true)
-      const newTransaction = await apiService.createTransaction(data)
+      const newTransaction = await transactionsApi.transactionControllerCreate({ 
+        createTransactionDto: {
+          ...data,
+          frequency: data.frequency as CreateTransactionDto['frequency']
+        }
+      })
       
       // Ensure the new transaction has categoryName populated
       const transactionWithCategory = {
@@ -60,8 +71,13 @@ export default function Home() {
       setTransactions(prev => [transactionWithCategory, ...prev])
       
       // Refresh summary
-      const summaryData = await apiService.getTransactionSummary()
-      setSummary(summaryData)
+      const summaryData = await transactionsApi.transactionControllerGetSummary()
+      setSummary({
+        totalIncome: summaryData.totalIncome || 0,
+        totalExpenses: summaryData.totalExpenses || 0,
+        netAmount: summaryData.netAmount || 0,
+        transactionCount: summaryData.transactionCount || 0
+      })
       
       setShowForm(false)
     } catch (error) {
@@ -72,13 +88,19 @@ export default function Home() {
     }
   }
 
-  const handleEditTransaction = async (data: UpdateTransactionData) => {
+  const handleEditTransaction = async (data: TransactionFormData) => {
     if (!editingTransaction) return
 
     try {
       setIsLoading(true)
       
-      const updatedTransaction = await apiService.updateTransaction(editingTransaction.id, data)
+      const updatedTransaction = await transactionsApi.transactionControllerUpdate({ 
+        id: editingTransaction.id, 
+        updateTransactionDto: {
+          ...data,
+          frequency: data.frequency as UpdateTransactionDto['frequency']
+        }
+      })
       
       // Ensure the updated transaction has categoryName populated
       const transactionWithCategory = {
@@ -91,8 +113,13 @@ export default function Home() {
       )
       
       // Refresh summary
-      const summaryData = await apiService.getTransactionSummary()
-      setSummary(summaryData)
+      const summaryData = await transactionsApi.transactionControllerGetSummary()
+      setSummary({
+        totalIncome: summaryData.totalIncome || 0,
+        totalExpenses: summaryData.totalExpenses || 0,
+        netAmount: summaryData.netAmount || 0,
+        transactionCount: summaryData.transactionCount || 0
+      })
       
       setEditingTransaction(null)
     } catch (error) {
@@ -108,13 +135,18 @@ export default function Home() {
 
     try {
       setIsLoading(true)
-      await apiService.deleteTransaction(id)
+      await transactionsApi.transactionControllerRemove({ id })
       
       setTransactions(prev => prev.filter(t => t.id !== id))
       
       // Refresh summary
-      const summaryData = await apiService.getTransactionSummary()
-      setSummary(summaryData)
+      const summaryData = await transactionsApi.transactionControllerGetSummary()
+      setSummary({
+        totalIncome: summaryData.totalIncome || 0,
+        totalExpenses: summaryData.totalExpenses || 0,
+        netAmount: summaryData.netAmount || 0,
+        transactionCount: summaryData.transactionCount || 0
+      })
     } catch (error) {
       console.error('Failed to delete transaction:', error)
       alert('Failed to delete transaction. Please try again.')
@@ -123,7 +155,7 @@ export default function Home() {
     }
   }
 
-  const handleEdit = (transaction: Transaction) => {
+  const handleEdit = (transaction: TransactionResponseDto) => {
     setEditingTransaction(transaction)
     setShowForm(true)
   }

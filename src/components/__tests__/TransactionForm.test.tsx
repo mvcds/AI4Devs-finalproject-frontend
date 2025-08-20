@@ -2,12 +2,12 @@ import React from 'react'
 import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { TransactionForm } from '../TransactionForm'
-import { apiService } from '../../services/api'
+import { categoriesApi } from '@/services/api'
 
 // Mock the API service
-jest.mock('../../services/api', () => ({
-  apiService: {
-    getCategories: jest.fn(),
+jest.mock('@/services/api', () => ({
+  categoriesApi: {
+    categoryControllerFindAll: jest.fn(),
   },
   FREQUENCIES: {
     DAILY: 'daily',
@@ -35,7 +35,7 @@ jest.mock('../../services/api', () => ({
   },
 }))
 
-const mockApiService = apiService as jest.Mocked<typeof apiService>
+const mockCategoriesApi = categoriesApi as jest.Mocked<typeof categoriesApi>
 
 // Mock the onSubmit and onCancel functions
 const mockOnSubmit = jest.fn()
@@ -45,7 +45,7 @@ describe('TransactionForm', () => {
   beforeEach(() => {
     jest.clearAllMocks()
     // Mock successful categories fetch by default
-    mockApiService.getCategories.mockResolvedValue([
+    mockCategoriesApi.categoryControllerFindAll.mockResolvedValue([
       { id: '550e8400-e29b-41d4-a716-446655440000', name: 'Salary', flow: 'income', color: '#00ff00', description: 'Salary income', createdAt: '2024-01-01', updatedAt: '2024-01-01' },
       { id: '550e8400-e29b-41d4-a716-446655440001', name: 'Food', flow: 'expense', color: '#ff0000', description: 'Food expenses', createdAt: '2024-01-01', updatedAt: '2024-01-01' },
     ])
@@ -74,7 +74,7 @@ describe('TransactionForm', () => {
       />
     )
 
-    expect(mockApiService.getCategories).toHaveBeenCalledTimes(1)
+    expect(mockCategoriesApi.categoryControllerFindAll).toHaveBeenCalledTimes(1)
     
     await waitFor(() => {
       expect(screen.getByText('Salary')).toBeInTheDocument()
@@ -83,7 +83,7 @@ describe('TransactionForm', () => {
   })
 
   it('shows loading state while fetching categories', () => {
-    mockApiService.getCategories.mockImplementation(() => new Promise(() => {})) // Never resolves
+    mockCategoriesApi.categoryControllerFindAll.mockImplementation(() => new Promise(() => {})) // Never resolves
     
     render(
       <TransactionForm
@@ -96,7 +96,7 @@ describe('TransactionForm', () => {
   })
 
   it('shows error state when categories fail to load', async () => {
-    mockApiService.getCategories.mockRejectedValue(new Error('API Error'))
+    mockCategoriesApi.categoryControllerFindAll.mockRejectedValue(new Error('API Error'))
     
     render(
       <TransactionForm

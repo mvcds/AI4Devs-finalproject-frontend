@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react'
 import { Edit, Trash2, Plus, Filter, Search } from 'lucide-react'
-import { Transaction as ApiTransaction, Category, apiService, FREQUENCIES, FREQUENCY_LABELS } from '../services/api'
+import { TransactionResponseDto as ApiTransaction, CategoryResponseDto, FREQUENCIES, FREQUENCY_LABELS } from '@/services/api'
 
 // Use the API service Transaction interface
 type Transaction = ApiTransaction
@@ -13,7 +13,7 @@ interface TransactionListProps {
   onDelete: (id: string) => void
   onCreateNew: () => void
   isLoading?: boolean
-  categories?: Category[]
+  categories?: CategoryResponseDto[]
 }
 
 export const TransactionList: React.FC<TransactionListProps> = ({
