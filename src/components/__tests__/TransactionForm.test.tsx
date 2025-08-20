@@ -59,6 +59,11 @@ describe('TransactionForm', () => {
       />
     )
 
+    // Wait for categories to load to avoid act() warnings
+    await waitFor(() => {
+      expect(screen.getByText('Salary')).toBeInTheDocument()
+    })
+
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/amount/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/date/i)).toBeInTheDocument()
@@ -82,7 +87,7 @@ describe('TransactionForm', () => {
     })
   })
 
-  it('shows loading state while fetching categories', () => {
+  it('shows loading state while fetching categories', async () => {
     mockCategoriesApi.categoryControllerFindAll.mockImplementation(() => new Promise(() => {})) // Never resolves
     
     render(
@@ -92,7 +97,10 @@ describe('TransactionForm', () => {
       />
     )
 
-    expect(screen.getByText('Loading categories...')).toBeInTheDocument()
+    // Wait for the loading state to appear
+    await waitFor(() => {
+      expect(screen.getByText('Loading categories...')).toBeInTheDocument()
+    })
   })
 
   it('shows error state when categories fail to load', async () => {
