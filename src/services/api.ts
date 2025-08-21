@@ -3,9 +3,7 @@ import { Configuration, TransactionsApi, CategoriesApi } from 'ai4devs-api-clien
 
 // Configuration that respects environment variables
 const createApiConfiguration = () => {
-  const basePath = process.env.NEXT_PUBLIC_API_URL || 
-                  process.env.BACKEND_URL || 
-                  'http://localhost:3000';
+  const basePath = process.env.NEXT_PUBLIC_API_URL || `http://localhost:${process.env.BACKEND_PORT}`;
   
   return new Configuration({
     basePath,

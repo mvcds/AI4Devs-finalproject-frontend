@@ -7,8 +7,8 @@ services:
       - '${FRONTEND_PORT:-3001}:${FRONTEND_PORT:-3001}'
     environment:
       - NODE_ENV=${NODE_ENV:-development}
-      - BACKEND_PORT=${BACKEND_PORT:-3000}
       - FRONTEND_PORT=${FRONTEND_PORT:-3001}
+      - BACKEND_PORT=${BACKEND_PORT:-3000}
       - NEXT_PUBLIC_API_URL=http://localhost:${BACKEND_PORT:-3000}
     volumes:
       - .:/app
@@ -16,7 +16,7 @@ services:
       - /app/.next
     command: sh -c "npm install ai4devs-api-client --no-fund --no-audit && npm run dev"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:${FRONTEND_PORT:-3001}/"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://frontend:3001"]
       interval: 30s
       timeout: 10s
       retries: 3
