@@ -193,6 +193,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
             <div
               key={transaction.id}
               className="bg-white p-4 rounded-lg shadow hover:shadow-md transition-shadow"
+              data-testid="transaction-item"
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
