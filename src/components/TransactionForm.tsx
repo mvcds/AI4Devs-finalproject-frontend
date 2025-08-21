@@ -187,9 +187,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               errors.description ? 'border-red-500' : 'border-gray-300'
             }`}
             placeholder="Enter transaction description"
+            data-testid="description-input"
           />
           {errors.description && (
-            <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.description.message}</p>
           )}
         </div>
 
@@ -209,10 +210,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
                 errors.amount ? 'border-red-500' : 'border-gray-300'
               }`}
               placeholder="0.00"
+              data-testid="amount-input"
             />
           </div>
           {errors.amount && (
-            <p className="mt-1 text-sm text-red-600">{errors.amount.message}</p>
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.amount.message}</p>
           )}
         </div>
 
@@ -226,9 +228,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             type="date"
             id="date"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            data-testid="date-input"
           />
           {errors.date && (
-            <p className="mt-1 text-sm text-red-600">{errors.date.message}</p>
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.date.message}</p>
           )}
         </div>
 
@@ -242,6 +245,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             id="categoryId"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoadingCategories}
+            data-testid="category-select"
           >
             <option value="">Select a category</option>
             {isLoadingCategories ? (
@@ -260,7 +264,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <p className="mt-1 text-sm text-red-600">{categoriesError}</p>
           )}
           {errors.categoryId && (
-            <p className="mt-1 text-sm text-red-600">{errors.categoryId.message}</p>
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.categoryId.message}</p>
           )}
         </div>
 
@@ -277,6 +281,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             {...register('frequency')}
             id="frequency"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            data-testid="frequency-select"
           >
             {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
               <option key={value} value={value}>
@@ -285,7 +290,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             ))}
           </select>
           {errors.frequency && (
-            <p className="mt-1 text-sm text-red-600">{errors.frequency.message}</p>
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.frequency.message}</p>
           )}
         </div>
 
@@ -305,9 +310,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             errors.notes ? 'border-red-500' : 'border-gray-300'
           }`}
           placeholder="Add any additional notes..."
+          data-testid="notes-input"
         />
         {errors.notes && (
-          <p className="mt-1 text-sm text-red-600">{errors.notes.message}</p>
+          <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.notes.message}</p>
         )}
       </div>
 
@@ -356,6 +362,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
               : 'bg-gray-400 cursor-not-allowed'
           }`}
           disabled={!isFormValid || isSubmitting}
+          data-testid="submit-button"
         >
           {isSubmitting ? (
             <>
