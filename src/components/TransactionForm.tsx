@@ -10,13 +10,10 @@ import { categoriesApi, CategoryResponseDto, FREQUENCIES, FREQUENCY_LABELS } fro
 // Form validation schema
 const transactionSchema = z.object({
   description: z.string().min(1, 'Description is required').max(255, 'Description too long'),
-  amount: z.number().min(-999999999.99, 'Amount too low').max(999999999.99, 'Amount too high'),
-  date: z.string().min(1, 'Date is required'),
-  categoryId: z.string().min(1, 'Category is required').refine((val) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val), {
-    message: 'Invalid UUID format'
-  }),
-  notes: z.string().max(1000, 'Notes too long').optional(),
-  frequency: z.string().min(1, 'Frequency is required'),
+  expression: z.string().min(1, 'Expression is required').max(1000, 'Expression too long'),
+  categoryId: z.string().min(1, 'Category is required'),
+  notes: z.string().optional(),
+  frequency: z.string().min(1, 'Frequency is required')
 })
 
 export type TransactionFormData = z.infer<typeof transactionSchema>
@@ -50,8 +47,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     mode: 'onChange',
     defaultValues: {
       description: initialData?.description || '',
-      amount: initialData?.amount || 0,
-      date: initialData?.date || new Date().toISOString().split('T')[0],
+      expression: initialData?.expression || '',
       categoryId: initialData?.categoryId || '',
       notes: initialData?.notes || '',
       frequency: initialData?.frequency || FREQUENCIES.MONTH,
@@ -66,8 +62,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         // Edit mode: populate form with transaction data
         reset({
           description: initialData.description || '',
-          amount: initialData.amount || 0,
-          date: initialData.date || new Date().toISOString().split('T')[0],
+          expression: initialData.expression || '',
           categoryId: initialData.categoryId || '',
           notes: initialData.notes || '',
           frequency: initialData.frequency || FREQUENCIES.MONTH,
@@ -76,8 +71,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         // Create mode: reset form to default values
         reset({
           description: '',
-          amount: 0,
-          date: new Date().toISOString().split('T')[0],
+          expression: '',
           categoryId: '',
           notes: '',
           frequency: FREQUENCIES.MONTH,
@@ -86,9 +80,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }, [initialData, categories, reset])
 
-  const watchedAmount = watch('amount')
+  const watchedExpression = watch('expression')
   const watchedDescription = watch('description')
-  const watchedDate = watch('date')
 
   // Calculate monthly equivalent for recurring transactions
   const calculateMonthlyEquivalent = (amount: number, frequency: string): number => {
@@ -131,8 +124,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
   // Custom validation check since react-hook-form isValid might not work as expected
   const isFormValid = watchedDescription && watchedDescription.trim().length > 0 && 
-                     watchedAmount !== undefined && watchedAmount !== null && 
-                     watchedDate && watchedDate.trim().length > 0 &&
+                     watchedExpression && watchedExpression.trim().length > 0 && 
                      watch('categoryId') && watch('categoryId').trim().length > 0 &&
                      watch('frequency') && watch('frequency').trim().length > 0
 
@@ -149,9 +141,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }
 
-  // Determine if amount is income or expense
-  const isIncome = (watchedAmount || 0) > 0
-  const displayAmount = Math.abs(watchedAmount || 0)
+  // Parse expression to determine if it's income or expense
+  const expressionValue = parseFloat(watchedExpression || '0') || 0
+  const isIncome = expressionValue > 0
+  const displayAmount = Math.abs(expressionValue)
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -194,44 +187,26 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           )}
         </div>
 
-        {/* Amount */}
+        {/* Expression */}
         <div>
-          <label htmlFor="amount" className="block text-sm font-medium text-gray-700 mb-2">
-            Amount *
-          </label>
-          <div className="relative">
-            <span className="absolute left-3 top-2 text-gray-500">$</span>
-            <input
-              {...register('amount', { valueAsNumber: true })}
-              type="number"
-              id="amount"
-              step="0.01"
-              className={`w-full pl-8 pr-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                errors.amount ? 'border-red-500' : 'border-gray-300'
-              }`}
-              placeholder="0.00"
-              data-testid="amount-input"
-            />
-          </div>
-          {errors.amount && (
-            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.amount.message}</p>
-          )}
-        </div>
-
-        {/* Date */}
-        <div>
-          <label htmlFor="date" className="block text-sm font-medium text-gray-700 mb-2">
-            Date *
+          <label htmlFor="expression" className="block text-sm font-medium text-gray-700 mb-2">
+            Value *
           </label>
           <input
-            {...register('date')}
-            type="date"
-            id="date"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            data-testid="date-input"
+            {...register('expression')}
+            type="text"
+            id="expression"
+            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+              errors.expression ? 'border-red-500' : 'border-gray-300'
+            }`}
+            placeholder="e.g., 5000, -200, @salary_id * 0.12"
+            data-testid="expression-input"
           />
-          {errors.date && (
-            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.date.message}</p>
+          <p className="mt-1 text-xs text-gray-500">
+            Enter a number (e.g., 5000 for income, -200 for expense) or an expression (e.g., @salary * 0.12)
+          </p>
+          {errors.expression && (
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.expression.message}</p>
           )}
         </div>
 
@@ -328,14 +303,13 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </p>
         
         {/* Monthly Equivalent Preview - All transactions are recurring */}
-        {watchedAmount !== undefined && watchedAmount !== null && (
+        {watchedExpression && watchedExpression.trim() && !isNaN(expressionValue) && (
           <div className="mt-3 pt-3 border-t border-gray-200">
             <p className="text-sm text-gray-600 mb-1">Monthly Equivalent:</p>
             <p className="text-md font-medium text-blue-600">
               ${(() => {
-                const amount = Number(watchedAmount) || 0;
                 const freq = watch('frequency') || FREQUENCIES.MONTH;
-                const result = calculateMonthlyEquivalent(amount, freq);
+                const result = calculateMonthlyEquivalent(expressionValue, freq);
                 return (typeof result === 'number' ? result : 0).toFixed(2);
               })()} per month
             </p>

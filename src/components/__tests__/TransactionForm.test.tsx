@@ -65,9 +65,9 @@ describe('TransactionForm', () => {
     })
 
     expect(screen.getByLabelText(/description/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/amount/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/date/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/value/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/category/i)).toBeInTheDocument()
+    expect(screen.getByLabelText(/frequency/i)).toBeInTheDocument()
     expect(screen.getByLabelText(/notes/i)).toBeInTheDocument()
   })
 
@@ -122,9 +122,10 @@ describe('TransactionForm', () => {
   it('populates form with initial data when editing', async () => {
     const initialData = {
       description: 'Test Transaction',
-      amount: 100,
-      date: '2024-01-15',
+      expression: '100',
+      categoryId: '550e8400-e29b-41d4-a716-446655440000',
       notes: 'Test notes',
+      frequency: 'month'
     }
 
     render(
@@ -142,7 +143,6 @@ describe('TransactionForm', () => {
 
     expect(screen.getByDisplayValue('Test Transaction')).toBeInTheDocument()
     expect(screen.getByDisplayValue('100')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('2024-01-15')).toBeInTheDocument()
     expect(screen.getByDisplayValue('Test notes')).toBeInTheDocument()
   })
 
@@ -165,7 +165,7 @@ describe('TransactionForm', () => {
     expect(mockOnCancel).toHaveBeenCalledTimes(1)
   })
 
-  it('shows amount preview based on amount', async () => {
+  it('shows amount preview based on expression', async () => {
     const user = userEvent.setup()
     
     render(
@@ -180,32 +180,29 @@ describe('TransactionForm', () => {
       expect(screen.getByText('Salary')).toBeInTheDocument()
     })
 
-    const amountInput = screen.getByLabelText(/amount/i)
+    const expressionInput = screen.getByLabelText(/value/i)
     const descriptionInput = screen.getByLabelText(/description/i)
-    const dateInput = screen.getByLabelText(/date/i)
     const categorySelect = screen.getByLabelText(/category/i)
     const frequencySelect = screen.getByLabelText(/frequency/i)
     
     // Fill required fields first
     await user.type(descriptionInput, 'Test Transaction')
-    await user.clear(dateInput)
-    await user.type(dateInput, '2024-01-15')
     
     // Select category and frequency using fireEvent for select elements
     fireEvent.change(categorySelect, { target: { value: '550e8400-e29b-41d4-a716-446655440000' } })
     fireEvent.change(frequencySelect, { target: { value: 'month' } })
     
-    // Test negative amount (expense)
-    await user.clear(amountInput)
-    await user.type(amountInput, '-150.50')
+    // Test negative expression (expense)
+    await user.clear(expressionInput)
+    await user.type(expressionInput, '-150.50')
     await waitFor(() => {
       expect(screen.getByText('-$150.50')).toBeInTheDocument()
       expect(screen.getByText('Expense')).toBeInTheDocument()
     })
 
-    // Test positive amount (income)
-    await user.clear(amountInput)
-    await user.type(amountInput, '200.75')
+    // Test positive expression (income)
+    await user.clear(expressionInput)
+    await user.type(expressionInput, '200.75')
     await waitFor(() => {
       expect(screen.getByText('+$200.75')).toBeInTheDocument()
       expect(screen.getByText('Income')).toBeInTheDocument()
@@ -246,10 +243,8 @@ describe('TransactionForm', () => {
 
     // Fill in required fields
     await user.type(screen.getByLabelText(/description/i), 'Test Transaction')
-    await user.clear(screen.getByLabelText(/amount/i))
-    await user.type(screen.getByLabelText(/amount/i), '100')
-    await user.clear(screen.getByLabelText(/date/i))
-    await user.type(screen.getByLabelText(/date/i), '2024-01-15')
+    await user.clear(screen.getByLabelText(/value/i))
+    await user.type(screen.getByLabelText(/value/i), '100')
     
     // Select category and frequency using fireEvent for select elements
     fireEvent.change(screen.getByLabelText(/category/i), { target: { value: '550e8400-e29b-41d4-a716-446655440000' } })
@@ -278,10 +273,8 @@ describe('TransactionForm', () => {
 
     // Fill in required fields
     await user.type(screen.getByLabelText(/description/i), 'Test Transaction')
-    await user.clear(screen.getByLabelText(/amount/i))
-    await user.type(screen.getByLabelText(/amount/i), '100')
-    await user.clear(screen.getByLabelText(/date/i))
-    await user.type(screen.getByLabelText(/date/i), '2024-01-15')
+    await user.clear(screen.getByLabelText(/value/i))
+    await user.type(screen.getByLabelText(/value/i), '100')
     
     // Select category and frequency using fireEvent for select elements
     fireEvent.change(screen.getByLabelText(/category/i), { target: { value: '550e8400-e29b-41d4-a716-446655440000' } })
@@ -300,8 +293,7 @@ describe('TransactionForm', () => {
     await waitFor(() => {
       expect(mockOnSubmit).toHaveBeenCalledWith({
         description: 'Test Transaction',
-        amount: 100,
-        date: '2024-01-15',
+        expression: '100',
         categoryId: '550e8400-e29b-41d4-a716-446655440000',
         frequency: 'month',
         notes: '',
