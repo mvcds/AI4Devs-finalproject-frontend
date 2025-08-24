@@ -84,7 +84,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const watchedDescription = watch('description')
 
   // Calculate monthly equivalent for recurring transactions
-  const calculateMonthlyEquivalent = (amount: number, frequency: string): number => {
+  const calculatenormalizedAmount = (amount: number, frequency: string): number => {
     // Ensure amount is a valid number
     const numAmount = Number(amount);
     if (isNaN(numAmount)) {
@@ -309,7 +309,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <p className="text-md font-medium text-blue-600">
               ${(() => {
                 const freq = watch('frequency') || FREQUENCIES.MONTH;
-                const result = calculateMonthlyEquivalent(expressionValue, freq);
+                const result = calculatenormalizedAmount(expressionValue, freq);
                 return (typeof result === 'number' ? result : 0).toFixed(2);
               })()} per month
             </p>

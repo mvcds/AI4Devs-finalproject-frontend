@@ -25,7 +25,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
       <div className="bg-white p-6 rounded-lg shadow" data-testid="expenses-summary">
         <h3 className="text-sm font-medium text-gray-500">Total Expenses</h3>
         <p className="mt-2 text-3xl font-bold text-red-600">
-          ${summary.totalExpenses.toFixed(2)}
+          -${summary.totalExpenses.toFixed(2)}
         </p>
       </div>
       <div className="bg-white p-6 rounded-lg shadow" data-testid="net-summary">
@@ -33,7 +33,7 @@ export function SummaryCards({ summary }: SummaryCardsProps) {
         <p className={`mt-2 text-3xl font-bold ${
           summary.netAmount >= 0 ? 'text-green-600' : 'text-red-600'
         }`}>
-          ${summary.netAmount.toFixed(2)}
+          {summary.netAmount >= 0 ? '+' : ''}${summary.netAmount.toFixed(2)}
         </p>
       </div>
     </div>

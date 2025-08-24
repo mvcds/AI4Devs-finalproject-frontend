@@ -31,7 +31,7 @@ describe('Transaction Fetch Operations Contract Tests', () => {
                 userId: 'user-123',
                 createdAt: new Date('2024-01-15T10:00:00Z'),
                 updatedAt: new Date('2024-01-15T10:00:00Z'),
-                monthlyEquivalent: 3500
+                normalizedAmount: 3500
               }
             ],
             total: 1,
@@ -87,7 +87,7 @@ describe('Transaction Fetch Operations Contract Tests', () => {
             userId: 'user-123',
             createdAt: new Date('2024-01-15T10:00:00Z'),
             updatedAt: new Date('2024-01-15T10:00:00Z'),
-            monthlyEquivalent: 3500
+            normalizedAmount: 3500
           }
 
           mockFetch.mockResolvedValueOnce({

@@ -44,16 +44,26 @@ export const TransactionList: React.FC<TransactionListProps> = ({
 
   const formatAmount = (amount: number) => {
     const absAmount = Math.abs(amount)
+    if (amount === 0) {
+      return `$${absAmount.toFixed(2)}`
+    }
     const sign = amount > 0 ? '+' : '-'
     return `${sign}$${absAmount.toFixed(2)}`
   }
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
+  const formatDate = (dateInput: string | Date) => {
+    const date = typeof dateInput === 'string' ? new Date(dateInput) : dateInput
+    return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
     })
+  }
+
+  const hasMathematicalSymbols = (expression: string) => {
+    // Check for mathematical operators: +, -, *, /, (, ), %, ^, etc.
+    const mathSymbols = /[\+\-\*\/\(\)\%\^]/
+    return mathSymbols.test(expression)
   }
 
   if (isLoading) {
@@ -213,7 +223,7 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   </div>
                   
                   <div className="flex items-center gap-4 text-sm text-gray-600">
-                    <span>{formatDate(transaction.date)}</span>
+                    <span>{formatDate(transaction.createdAt)}</span>
                     {transaction.notes && (
                       <span className="truncate max-w-xs">{transaction.notes}</span>
                     )}
@@ -225,9 +235,20 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                   </div>
                   
                   {/* Monthly Equivalent - All transactions are recurring */}
-                  {transaction.monthlyEquivalent && (
+                  {transaction.normalizedAmount !== undefined && (
                     <div className="mt-2 text-sm text-gray-500">
-                      <span className="font-medium">Monthly equivalent:</span> {transaction.monthlyEquivalent}
+                      <span className="font-medium">Monthly equivalent:</span> 
+                      <span
+                        className={`ml-1 ${
+                          transaction.normalizedAmount > 0 
+                            ? 'text-green-600' 
+                            : transaction.normalizedAmount < 0 
+                            ? 'text-red-600' 
+                            : 'text-gray-600'
+                        }`}
+                      >
+                        {formatAmount(transaction.normalizedAmount)}
+                      </span>
                     </div>
                   )}
                   
@@ -237,11 +258,25 @@ export const TransactionList: React.FC<TransactionListProps> = ({
                 <div className="flex items-center gap-3">
                   <span
                     className={`text-lg font-semibold ${
-                      transaction.amount > 0 ? 'text-green-600' : 'text-red-600'
+                      transaction.amount > 0 
+                        ? 'text-green-600' 
+                        : transaction.amount < 0 
+                        ? 'text-red-600' 
+                        : 'text-gray-600'
                     }`}
                   >
                     {formatAmount(transaction.amount)}
                   </span>
+                  
+                  {/* Auto-calculated badge - only show when expression has mathematical symbols */}
+                  {hasMathematicalSymbols(transaction.expression.toString()) && (
+                    <span 
+                      className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-800"
+                      data-testid="auto-calculated-badge"
+                    >
+                      🧮 Auto-calculated
+                    </span>
+                  )}
                   
                   <div className="flex gap-2">
                     <button

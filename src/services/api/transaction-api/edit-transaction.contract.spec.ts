@@ -35,7 +35,7 @@ describe('Transaction Edit Operations Contract Tests', () => {
             userId: 'user-123',
             createdAt: new Date('2024-01-15T10:00:00Z'),
             updatedAt: new Date(), // Should be updated
-            monthlyEquivalent: 200
+            normalizedAmount: 200
           }
 
           mockFetch.mockResolvedValueOnce({
