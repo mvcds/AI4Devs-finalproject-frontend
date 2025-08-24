@@ -19,13 +19,14 @@ describe('Transaction Edit Operations Contract Tests', () => {
           // Arrange: Mock successful HTTP response
           const updateData: UpdateTransactionDto = {
             description: 'Updated Transaction',
-            expression: '200',
+            expression: { value: '200' },
             notes: 'Updated notes'
           }
 
           const mockUpdatedTransaction = {
             id: 'existing-transaction-id',
             description: 'Updated Transaction',
+            expression: '200',
             amount: 200,
             categoryId: 'cat-123',
             categoryName: 'Test Category',

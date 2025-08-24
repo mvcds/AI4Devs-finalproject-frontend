@@ -19,7 +19,7 @@ describe('Transaction Create Operations Contract Tests', () => {
           // Arrange: Mock successful HTTP response
           const createData: CreateTransactionDto = {
             description: 'New Transaction',
-            expression: '100',
+            expression: { value: '100' },
             categoryId: 'cat-123',
             notes: 'Test transaction',
             frequency: 'month'
@@ -28,6 +28,7 @@ describe('Transaction Create Operations Contract Tests', () => {
           const mockCreatedTransaction = {
             id: 'new-transaction-id',
             description: 'New Transaction',
+            expression: '100',
             amount: 100,
             categoryId: 'cat-123',
             categoryName: 'Test Category',
@@ -74,7 +75,7 @@ describe('Transaction Create Operations Contract Tests', () => {
           // Arrange: Mock HTTP validation error response
           const invalidData = {
             description: '', // Missing required field
-            expression: '100',
+            expression: { value: '100' },
             categoryId: 'cat-123',
             frequency: 'month'
           } as CreateTransactionDto

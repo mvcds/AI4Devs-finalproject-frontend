@@ -22,6 +22,7 @@ describe('Transaction Fetch Operations Contract Tests', () => {
               {
                 id: '123e4567-e89b-12d3-a456-426614174000',
                 description: 'Monthly Salary',
+                expression: '3500',
                 amount: 3500,
                 categoryId: 'cat-123',
                 categoryName: 'Salary',
@@ -77,6 +78,7 @@ describe('Transaction Fetch Operations Contract Tests', () => {
           const mockTransaction = {
             id: '123e4567-e89b-12d3-a456-426614174000',
             description: 'Monthly Salary',
+            expression: '3500',
             amount: 3500,
             categoryId: 'cat-123',
             categoryName: 'Salary',
