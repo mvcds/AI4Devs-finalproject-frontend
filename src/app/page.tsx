@@ -11,7 +11,8 @@ export default function Home() {
   const [transactions, setTransactions] = useState<TransactionResponseDto[]>([])
   const [summary, setSummary] = useState<import('../components/SummaryCards').TransactionSummary | null>(null)
   const [showForm, setShowForm] = useState(false)
-  const [editingTransaction, setEditingTransaction] = useState<TransactionResponseDto | null>(null)
+  const [editingTransaction, setEditingTransaction] = useState<TransactionFormData | null>(null)
+  const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [categories, setCategories] = useState<CategoryResponseDto[]>([])
 
@@ -63,9 +64,10 @@ export default function Home() {
       })
       
       // Ensure the new transaction has categoryName populated
+      const category = categories.find(cat => cat.id === newTransaction.categoryId)
       const transactionWithCategory = {
         ...newTransaction,
-        categoryName: categories.find(cat => cat.id === newTransaction.categoryId)?.name
+        categoryName: category?.name || 'Unknown Category'
       }
       
       setTransactions(prev => [transactionWithCategory, ...prev])
@@ -89,13 +91,13 @@ export default function Home() {
   }
 
   const handleEditTransaction = async (data: TransactionFormData) => {
-    if (!editingTransaction) return
+    if (!editingTransactionId) return
 
     try {
       setIsLoading(true)
       
       const updatedTransaction = await transactionsApi.transactionControllerUpdate({ 
-        id: editingTransaction.id, 
+        id: editingTransactionId, 
         updateTransactionDto: {
           ...data,
           frequency: data.frequency as UpdateTransactionDto['frequency']
@@ -103,13 +105,14 @@ export default function Home() {
       })
       
       // Ensure the updated transaction has categoryName populated
+      const category = categories.find(cat => cat.id === updatedTransaction.categoryId)
       const transactionWithCategory = {
         ...updatedTransaction,
-        categoryName: categories.find(cat => cat.id === updatedTransaction.categoryId)?.name
+        categoryName: category?.name || 'Unknown Category'
       }
       
       setTransactions(prev => 
-        prev.map(t => t.id === editingTransaction.id ? transactionWithCategory : t)
+        prev.map(t => t.id === editingTransactionId ? transactionWithCategory : t)
       )
       
       // Refresh summary
@@ -122,6 +125,7 @@ export default function Home() {
       })
       
       setEditingTransaction(null)
+      setEditingTransactionId(null)
     } catch (error) {
       console.error('Failed to update transaction:', error)
       alert('Failed to update transaction. Please try again.')
@@ -156,17 +160,28 @@ export default function Home() {
   }
 
   const handleEdit = (transaction: TransactionResponseDto) => {
-    setEditingTransaction(transaction)
+    // Convert TransactionResponseDto to TransactionFormData format
+    const formData: TransactionFormData = {
+      description: transaction.description,
+      expression: typeof transaction.expression === 'string' ? transaction.expression : transaction.expression.toString(),
+      categoryId: transaction.categoryId,
+      notes: transaction.notes || '',
+      frequency: transaction.frequency
+    }
+    setEditingTransaction(formData)
+    setEditingTransactionId(transaction.id)
     setShowForm(true)
   }
 
   const handleCancel = () => {
     setShowForm(false)
     setEditingTransaction(null)
+    setEditingTransactionId(null)
   }
 
   const handleCreateNew = () => {
     setEditingTransaction(null)
+    setEditingTransactionId(null)
     setShowForm(true)
   }
 

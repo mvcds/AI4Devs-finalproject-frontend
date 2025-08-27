@@ -1,4 +1,4 @@
-//@ts-ignore
+//@ts-ignore, necessary while BE is not production ready
 import { Configuration, TransactionsApi, CategoriesApi } from 'ai4devs-api-client';
 
 // Configuration that respects environment variables
@@ -19,6 +19,7 @@ const config = createApiConfiguration();
 export const transactionsApi = new TransactionsApi(config);
 export const categoriesApi = new CategoriesApi(config);
 
+//TODO: make them come from BE
 // Export constants that components expect
 export const FREQUENCIES = {
   DAILY: 'daily',
@@ -33,6 +34,7 @@ export const FREQUENCIES = {
   TWO_YEAR: '2-year'
 };
 
+//TODO: make them come from BE
 export const FREQUENCY_LABELS = {
   'daily': 'Daily',
   'week': 'Week',
@@ -47,5 +49,5 @@ export const FREQUENCY_LABELS = {
 };
 
 // Re-export everything from the generated client
-//@ts-ignore
+//@ts-ignore, necessary while BE is not production ready
 export * from 'ai4devs-api-client';

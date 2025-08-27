@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack -p ${FRONTEND_PORT:-3001}",
+    "dev": "next dev -p ${FRONTEND_PORT:-3001}",
     "build": "next build",
     "start": "next start -p ${FRONTEND_PORT:-3001}",
     "lint": "next lint",
@@ -14,7 +14,6 @@
     "register:update": "npm update ai4devs-api-client --registry http://verdaccio:4873"
   },
   "dependencies": {
-    "@hookform/resolvers": "^3.9.1",
     "@tanstack/react-query": "^5.59.16",
     "clsx": "^2.1.1",
     "lucide-react": "^0.468.0",
@@ -22,8 +21,7 @@
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-hook-form": "^7.51.0",
-    "tailwind-merge": "^2.5.4",
-    "zod": "^3.23.8"
+    "tailwind-merge": "^2.5.4"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",

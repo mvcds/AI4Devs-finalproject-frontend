@@ -14,9 +14,9 @@ services:
       - .:/app
       - /app/node_modules
       - /app/.next
-    command: sh -c "npm install ai4devs-api-client --no-fund --no-audit && npm run dev"
+    command: sh -c "npm run dev"
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://frontend:3001"]
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://frontend:${FRONTEND_PORT:-3001}"]
       interval: 30s
       timeout: 10s
       retries: 3
