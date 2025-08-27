@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { Save, X } from 'lucide-react'
-import { categoriesApi, FREQUENCIES, FREQUENCY_LABELS } from '@/services/api'
+import { categoriesApi, FREQUENCIES, FREQUENCY_LABELS, evaluateExpression } from '@/services/api'
 
 // Form validation using backend validation utilities
 export interface TransactionFormData {
@@ -30,6 +30,14 @@ interface CategoryResponseDto {
   color?: string;
   description?: string;
   parentId?: string;
+}
+
+// Expression evaluation result interface
+interface ExpressionEvaluation {
+  amount: number;
+  type: 'income' | 'expense';
+  normalizedAmount: number;
+  isValid: boolean;
 }
 
 // Simple local validation function
@@ -75,6 +83,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [categories, setCategories] = useState<CategoryResponseDto[]>([])
   const [isLoadingCategories, setIsLoadingCategories] = useState(true)
   const [categoriesError, setCategoriesError] = useState<string | null>(null)
+  const [expressionEvaluation, setExpressionEvaluation] = useState<ExpressionEvaluation | null>(null)
+  const [isEvaluatingExpression, setIsEvaluatingExpression] = useState(false)
 
   const {
     register,
@@ -82,11 +92,11 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     watch,
     reset,
     setValue,
-    formState: { errors },
+    formState: { errors, isDirty, touchedFields },
     setError,
     clearErrors,
   } = useForm<TransactionFormData>({
-    mode: 'onChange',
+    mode: 'onBlur', // Only validate on blur, not on change
     defaultValues: {
       description: initialData?.description || '',
       expression: initialData?.expression || '',
@@ -124,6 +134,52 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
   const watchedExpression = watch('expression')
   const watchedDescription = watch('description')
+  const watchedFrequency = watch('frequency')
+
+  // Evaluate expression using backend endpoint
+  const evaluateExpressionValue = useCallback(async (expression: string, frequency: string) => {
+    if (!expression || !expression.trim()) {
+      setExpressionEvaluation(null)
+      return
+    }
+
+    // Don't evaluate if expression is just a symbol or incomplete
+    const trimmedExpression = expression.trim()
+    if (trimmedExpression === '-' || trimmedExpression === '+' || trimmedExpression === '*' || trimmedExpression === '/' || trimmedExpression === '.') {
+      setExpressionEvaluation(null)
+      return
+    }
+
+    // Don't evaluate if expression ends with an operator (incomplete)
+    if (/[+\-*/.=]$/.test(trimmedExpression)) {
+      setExpressionEvaluation(null)
+      return
+    }
+
+    try {
+      setIsEvaluatingExpression(true)
+      const result = await evaluateExpression(expression, frequency)
+      setExpressionEvaluation(result)
+    } catch (error) {
+      console.error('Failed to evaluate expression:', error)
+      setExpressionEvaluation(null)
+    } finally {
+      setIsEvaluatingExpression(false)
+    }
+  }, [])
+
+  // Evaluate expression when expression or frequency changes
+  useEffect(() => {
+    if (watchedExpression && watchedFrequency) {
+      const timeoutId = setTimeout(() => {
+        evaluateExpressionValue(watchedExpression, watchedFrequency)
+      }, 300) // Debounce evaluation
+
+      return () => clearTimeout(timeoutId)
+    } else {
+      setExpressionEvaluation(null)
+    }
+  }, [watchedExpression, watchedFrequency, evaluateExpressionValue])
 
   // Calculate monthly equivalent for recurring transactions
   const calculatenormalizedAmount = (amount: number, frequency: string): number => {
@@ -197,23 +253,20 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       const validationResult = validateTransactionForm(formData)
       console.log('Validation result:', validationResult)
       
-      // Clear previous errors
-      //TODO: the results should tell us which field has failed
-      clearErrors()
-      
-      // Set new errors if validation fails - simplified error handling
+      // Don't clear errors here to prevent infinite loops
+      // Only set errors if validation fails and they don't already exist
       if (!validationResult.isValid && validationResult.errorMessages) {
         // Generic error handling - don't rely on specific error message text
-        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('description'))) {
+        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('description')) && !errors.description) {
           setError('description', { message: 'Description is required and must be valid' })
         }
-        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('expression'))) {
+        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('expression')) && !errors.expression) {
           setError('expression', { message: 'Expression is required and must be valid' })
         }
-        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('category'))) {
+        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('category')) && !errors.categoryId) {
           setError('categoryId', { message: 'Category is required and must be valid' })
         }
-        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('frequency'))) {
+        if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('frequency')) && !errors.frequency) {
           setError('frequency', { message: 'Frequency is required and must be valid' })
         }
       }
@@ -224,7 +277,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       // Fallback validation - check if required fields have values
       return simpleValidation(formData)
     }
-  }, [watch, clearErrors, setError, simpleValidation])
+  }, [watch, setError, errors, simpleValidation])
 
   const handleFormSubmit = async (data: TransactionFormData) => {
     try {
@@ -246,41 +299,30 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     }
   }
 
-  // Parse expression to determine if it's income or expense
-  const expressionValue = parseFloat(watchedExpression || '0') || 0
-  const isIncome = expressionValue > 0
-  const displayAmount = Math.abs(expressionValue)
-
-  // Run validation when form values change - more responsive for E2E tests
+  // Run validation when form values change - only after user interaction
   useEffect(() => {
-    const runValidation = () => {
-      console.log('Running validation...')
-      const isValid = validateForm()
-      console.log('Validation result:', isValid)
-      setIsFormValid(isValid)
-    }
-    
-    // Run validation immediately
-    runValidation()
-    
-    // Also run validation after a short delay to catch any async issues
-    const timeoutId = setTimeout(runValidation, 100)
-    
-    return () => clearTimeout(timeoutId)
-  }, [watchedDescription, watchedExpression, watch('categoryId'), watch('frequency'), validateForm])
-
-  // Run initial validation when form loads
-  useEffect(() => {
-    if (categories.length > 0) {
-      const runInitialValidation = () => {
-        console.log('Running initial validation...')
+    // Only run validation if the user has interacted with the form
+    if (isDirty || Object.keys(touchedFields).length > 0) {
+      const runValidation = () => {
+        console.log('Running validation...')
         const isValid = validateForm()
-        console.log('Initial validation result:', isValid)
+        console.log('Validation result:', isValid)
         setIsFormValid(isValid)
       }
-      runInitialValidation()
+      
+      // Use a timeout to debounce validation and prevent excessive calls
+      const timeoutId = setTimeout(runValidation, 100)
+      return () => clearTimeout(timeoutId)
     }
-  }, [categories, validateForm])
+  }, [watchedDescription, watchedExpression, watch('categoryId'), watch('frequency'), validateForm, isDirty, touchedFields])
+
+  // Run initial validation when form loads - but don't show errors initially
+  useEffect(() => {
+    if (categories.length > 0) {
+      // Set form as initially valid to prevent showing errors on mount
+      setIsFormValid(true)
+    }
+  }, [categories])
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -324,7 +366,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         </div>
 
         {/* Expression */}
-        <div>
+        <div className="md:col-span-2">
           <label htmlFor="expression" className="block text-sm font-medium text-gray-700 mb-2">
             Value *
           </label>
@@ -343,6 +385,76 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           </p>
           {errors.expression && (
             <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.expression.message}</p>
+          )}
+          
+          {/* Amount Preview - moved below the value field */}
+          <div className="mt-3 bg-gray-50 p-3 rounded-md">
+            <p className="text-sm text-gray-600 mb-2">Amount Preview:</p>
+            {watchedExpression && watchedExpression.trim() ? (
+              <>
+                {isEvaluatingExpression ? (
+                  <p className="text-sm text-gray-500">Evaluating expression...</p>
+                ) : expressionEvaluation ? (
+                  <>
+                    <p className={`text-lg font-semibold ${expressionEvaluation.type === 'income' ? 'text-green-600' : 'text-red-600'}`}>
+                      {expressionEvaluation.type === 'income' ? '+' : '-'}${Math.abs(expressionEvaluation.amount).toFixed(2)}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {expressionEvaluation.type === 'income' ? 'Income' : 'Expense'}
+                    </p>
+                    
+                    {/* Monthly Equivalent Preview - All transactions are recurring */}
+                    {expressionEvaluation.normalizedAmount !== 0 && (
+                      <div className="mt-3 pt-3 border-t border-gray-200">
+                        <p className="text-sm text-gray-600 mb-1">Monthly Equivalent:</p>
+                        <p className="text-md font-medium text-blue-600">
+                          ${Math.abs(expressionEvaluation.normalizedAmount).toFixed(2)} per month
+                        </p>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div>
+                    <p className="text-sm text-gray-500">Expression needs to be completed</p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {watchedExpression.trim() === '-' && 'Add a number after the minus sign (e.g., -100)'}
+                      {watchedExpression.trim() === '+' && 'Add a number after the plus sign (e.g., +100)'}
+                      {watchedExpression.trim() === '*' && 'Add numbers before and after the multiplication (e.g., 100 * 2)'}
+                      {watchedExpression.trim() === '/' && 'Add numbers before and after the division (e.g., 100 / 2)'}
+                      {watchedExpression.trim() === '.' && 'Add numbers before and after the decimal (e.g., 100.50)'}
+                      {/[+\-*/.=]$/.test(watchedExpression.trim()) && 'Complete the expression by adding numbers'}
+                    </p>
+                  </div>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-gray-500">Enter a value to see preview</p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Frequency and Category Fields - moved to be side by side */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Frequency */}
+        <div>
+          <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-2">
+            Frequency *
+          </label>
+          <select
+            {...register('frequency')}
+            id="frequency"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            data-testid="frequency-select"
+          >
+            {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+          {errors.frequency && (
+            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.frequency.message}</p>
           )}
         </div>
 
@@ -378,34 +490,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.categoryId.message}</p>
           )}
         </div>
-
-      </div>
-
-      {/* Frequency Fields - All transactions are recurring */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Frequency */}
-        <div>
-          <label htmlFor="frequency" className="block text-sm font-medium text-gray-700 mb-2">
-            Frequency *
-          </label>
-          <select
-            {...register('frequency')}
-            id="frequency"
-            className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            data-testid="frequency-select"
-          >
-            {Object.entries(FREQUENCY_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {errors.frequency && (
-            <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.frequency.message}</p>
-          )}
-        </div>
-
-
       </div>
 
       {/* Notes */}
@@ -425,43 +509,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
         />
         {errors.notes && (
           <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.notes.message}</p>
-        )}
-      </div>
-
-      {/* Amount Preview */}
-      <div className="bg-gray-50 p-4 rounded-md">
-        <p className="text-sm text-gray-600 mb-2">Amount Preview:</p>
-        <p className={`text-lg font-semibold ${isIncome ? 'text-green-600' : 'text-red-600'}`}>
-          {isIncome ? '+' : '-'}${displayAmount.toFixed(2)}
-        </p>
-        <p className="text-sm text-gray-500 mt-1">
-          {isIncome ? 'Income' : 'Expense'}
-        </p>
-        
-        {/* Debug info for E2E tests */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Debug Info:</p>
-            <p className="text-xs text-gray-500">Form Valid: {isFormValid ? 'Yes' : 'No'}</p>
-            <p className="text-xs text-gray-500">Description: {watch('description') || 'empty'}</p>
-            <p className="text-xs text-gray-500">Expression: {watch('expression') || 'empty'}</p>
-            <p className="text-xs text-gray-500">Category: {watch('categoryId') || 'empty'}</p>
-            <p className="text-xs text-gray-500">Frequency: {watch('frequency') || 'empty'}</p>
-          </div>
-        )}
-        
-        {/* Monthly Equivalent Preview - All transactions are recurring */}
-        {watchedExpression && watchedExpression.trim() && !isNaN(expressionValue) && (
-          <div className="mt-3 pt-3 border-t border-gray-200">
-            <p className="text-sm text-gray-600 mb-1">Monthly Equivalent:</p>
-            <p className="text-md font-medium text-blue-600">
-              ${(() => {
-                const freq = watch('frequency') || FREQUENCIES.MONTH;
-                const result = calculatenormalizedAmount(expressionValue, freq);
-                return (typeof result === 'number' ? result : 0).toFixed(2);
-              })()} per month
-            </p>
-          </div>
         )}
       </div>
 

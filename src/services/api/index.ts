@@ -19,6 +19,29 @@ const config = createApiConfiguration();
 export const transactionsApi = new TransactionsApi(config);
 export const categoriesApi = new CategoriesApi(config);
 
+//TODO: expose it on client
+// Add expression evaluation method
+export const evaluateExpression = async (expression: string, frequency: string): Promise<{
+  amount: number;
+  type: 'income' | 'expense';
+  normalizedAmount: number;
+  isValid: boolean;
+}> => {
+  const response = await fetch(`${config.basePath}/api/transactions/evaluate-expression`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ expression, frequency }),
+  });
+
+  if (!response.ok) {
+    throw new Error('Failed to evaluate expression');
+  }
+
+  return response.json();
+};
+
 //TODO: make them come from BE
 // Export constants that components expect
 export const FREQUENCIES = {
