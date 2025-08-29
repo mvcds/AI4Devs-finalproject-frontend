@@ -3,69 +3,9 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { Save, X } from 'lucide-react'
-import { categoriesApi, FREQUENCIES, FREQUENCY_LABELS, evaluateExpression } from '@/services/api'
+import { categoriesApi, transactionsApi, FREQUENCIES, FREQUENCY_LABELS, TransactionControllerEvaluateExpressionFrequencyEnum, CategoryResponseDto, CreateTransactionDto, CreateTransactionDtoFrequencyEnum, ExpressionResult } from '@/services/api'
 
-// Form validation using backend validation utilities
-export interface TransactionFormData {
-  description: string
-  expression: string
-  categoryId: string
-  notes?: string
-  frequency: string
-}
-
-// Local validation types and functions since ai4devs-api-client is not available locally
-//TODO: use from class validator
-interface ValidationResult {
-  isValid: boolean;
-  errors: any[];
-  errorMessages: string[];
-}
-
-// Local category interface
-interface CategoryResponseDto {
-  id: string;
-  name: string;
-  flow: string;
-  color?: string;
-  description?: string;
-  parentId?: string;
-}
-
-// Expression evaluation result interface
-interface ExpressionEvaluation {
-  amount: number;
-  type: 'income' | 'expense';
-  normalizedAmount: number;
-  isValid: boolean;
-}
-
-// Simple local validation function
-const validateTransactionForm = (data: TransactionFormData): ValidationResult => {
-  const errors: string[] = []
-  
-  if (!data.description || data.description.trim().length === 0) {
-    errors.push('Description is required')
-  }
-  
-  if (!data.expression || data.expression.trim().length === 0) {
-    errors.push('Expression is required')
-  }
-  
-  if (!data.categoryId) {
-    errors.push('Category is required')
-  }
-  
-  if (!data.frequency) {
-    errors.push('Frequency is required')
-  }
-  
-  return {
-    isValid: errors.length === 0,
-    errors: [],
-    errorMessages: errors
-  }
-}
+export type TransactionFormData = CreateTransactionDto;
 
 interface TransactionFormProps {
   onSubmit: (data: TransactionFormData) => Promise<void>
@@ -83,7 +23,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [categories, setCategories] = useState<CategoryResponseDto[]>([])
   const [isLoadingCategories, setIsLoadingCategories] = useState(true)
   const [categoriesError, setCategoriesError] = useState<string | null>(null)
-  const [expressionEvaluation, setExpressionEvaluation] = useState<ExpressionEvaluation | null>(null)
+  const [expressionEvaluation, setExpressionEvaluation] = useState<ExpressionResult | null>(null)
   const [isEvaluatingExpression, setIsEvaluatingExpression] = useState(false)
 
   const {
@@ -91,10 +31,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     handleSubmit,
     watch,
     reset,
-    setValue,
     formState: { errors, isDirty, touchedFields },
     setError,
-    clearErrors,
   } = useForm<TransactionFormData>({
     mode: 'onBlur', // Only validate on blur, not on change
     defaultValues: {
@@ -102,7 +40,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       expression: initialData?.expression || '',
       categoryId: initialData?.categoryId || '',
       notes: initialData?.notes || '',
-      frequency: initialData?.frequency || FREQUENCIES.MONTH,
+      frequency: (initialData?.frequency || FREQUENCIES.MONTH) as CreateTransactionDtoFrequencyEnum,
     },
   })
 
@@ -117,7 +55,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           expression: initialData.expression || '',
           categoryId: initialData.categoryId || '',
           notes: initialData.notes || '',
-          frequency: initialData.frequency || FREQUENCIES.MONTH,
+          frequency: (initialData.frequency || FREQUENCIES.MONTH) as CreateTransactionDtoFrequencyEnum,
         })
       } else {
         // Create mode: reset form to default values
@@ -126,7 +64,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           expression: '',
           categoryId: '',
           notes: '',
-          frequency: FREQUENCIES.MONTH,
+          frequency: FREQUENCIES.MONTH as CreateTransactionDtoFrequencyEnum,
         })
       }
     }
@@ -158,7 +96,10 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
 
     try {
       setIsEvaluatingExpression(true)
-      const result = await evaluateExpression(expression, frequency)
+      const result = await transactionsApi.transactionControllerEvaluateExpression({
+        expression,
+        frequency: frequency as TransactionControllerEvaluateExpressionFrequencyEnum,
+      });
       setExpressionEvaluation(result)
     } catch (error) {
       console.error('Failed to evaluate expression:', error)
@@ -182,43 +123,6 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   }, [watchedExpression, watchedFrequency, evaluateExpressionValue])
 
   // Calculate monthly equivalent for recurring transactions
-  const calculatenormalizedAmount = (amount: number, frequency: string): number => {
-    // Ensure amount is a valid number
-    const numAmount = Number(amount);
-    if (isNaN(numAmount)) {
-      return 0;
-    }
-    
-    // Safety check for invalid frequency
-    if (!frequency || typeof frequency !== 'string') {
-      return numAmount;
-    }
-
-    switch (frequency) {
-      case FREQUENCIES.DAILY:
-        return numAmount * 30 // Approximate days in month
-      case FREQUENCIES.WEEK:
-        return numAmount * 4.33 // Average weeks per month (52/12)
-      case FREQUENCIES.FORTNIGHT:
-        return numAmount * 2.17 // Average fortnights per month (26/12)
-      case FREQUENCIES.MONTH:
-        return numAmount
-      case FREQUENCIES.TWO_MONTH:
-        return numAmount / 2
-      case FREQUENCIES.THREE_MONTH:
-        return numAmount / 3
-      case FREQUENCIES.QUARTER:
-        return numAmount / 3
-      case FREQUENCIES.HALF:
-        return numAmount / 6
-      case FREQUENCIES.YEAR:
-        return numAmount / 12
-      case FREQUENCIES.TWO_YEAR:
-        return numAmount / 24
-      default:
-        return numAmount
-    }
-  }
 
   //TODO: we should not use a fallback, just the backend validation
   // Simple fallback validation for E2E tests - ensures form works even if backend validation fails
@@ -232,6 +136,15 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     
     console.log('Simple validation result:', isValid, data)
     return isValid
+  }
+
+  const validateTransactionForm = (data: TransactionFormData): { isValid: boolean; errorMessages: string[] } => {
+    const errorMessages: string[] = []
+    if (!data.description || data.description.trim().length === 0) errorMessages.push('Description is invalid')
+    if (!data.expression || data.expression.trim().length === 0) errorMessages.push('Expression is invalid')
+    if (!data.categoryId || data.categoryId.trim().length === 0) errorMessages.push('Category is invalid')
+    if (!data.frequency) errorMessages.push('Frequency is invalid')
+    return { isValid: errorMessages.length === 0, errorMessages }
   }
 
   // Custom validation check since react-hook-form isValid might not work as expected

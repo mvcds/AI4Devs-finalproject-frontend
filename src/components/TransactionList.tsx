@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import { Edit, Trash2, Plus, Filter, Search } from 'lucide-react'
-import { TransactionResponseDto as ApiTransaction, CategoryResponseDto, FREQUENCIES, FREQUENCY_LABELS } from '@/services/api'
+import { TransactionResponseDto as ApiTransaction, CategoryResponseDto, FREQUENCY_LABELS } from '@/services/api'
 
 // Use the API service Transaction interface
 type Transaction = ApiTransaction
@@ -61,7 +61,14 @@ export const TransactionList: React.FC<TransactionListProps> = ({
   }
 
   const hasMathematicalSymbols = (expression: string) => {
+    // Check if it's just a simple negative number (e.g., "-100", "-50.25")
+    const simpleNegativeNumber = /^-\d+(\.\d+)?$/
+    if (simpleNegativeNumber.test(expression)) {
+      return false
+    }
+    
     // Check for mathematical operators: +, -, *, /, (, ), %, ^, etc.
+    // But exclude the case where it's just a negative number
     const mathSymbols = /[\+\-\*\/\(\)\%\^]/
     return mathSymbols.test(expression)
   }

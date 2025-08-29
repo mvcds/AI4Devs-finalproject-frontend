@@ -1,14 +1,8 @@
 import React from 'react'
-
-export interface TransactionSummary {
-  totalIncome: number
-  totalExpenses: number
-  netAmount: number
-  transactionCount: number
-}
+import { TransactionSummaryDto } from '@/services/api'
 
 interface SummaryCardsProps {
-  summary: TransactionSummary | null
+  summary: TransactionSummaryDto | null
 }
 
 export function SummaryCards({ summary }: SummaryCardsProps) {

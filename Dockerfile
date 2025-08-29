@@ -4,9 +4,9 @@ WORKDIR /app
 
 COPY package*.json ./
 
-# TODO: Remove --omit=optional when ai4devs-api-client is published for real in NPM
+# TODO: Remove --no-optional --omit=optional for ai4devs-api-client when that is published for real in NPM
 # We also need to remove its installation from the compose file
-RUN npm install --no-fund --no-audit --omit=optional
+RUN npm install --no-fund --no-audit --no-optional --omit=optional
 
 COPY . .
 

@@ -1,11 +1,10 @@
 'use client'
 
 import React, { useState, useEffect } from 'react'
-import { TransactionForm } from '../components/TransactionForm'
+import { TransactionForm, TransactionFormData } from '../components/TransactionForm'
 import { TransactionList } from '../components/TransactionList'
 import { SummaryCards } from '../components/SummaryCards'
-import { transactionsApi, categoriesApi, TransactionResponseDto, CreateTransactionDto, UpdateTransactionDto, CategoryResponseDto } from '@/services/api'
-import type { TransactionFormData } from '../components/TransactionForm'
+import { transactionsApi, categoriesApi, TransactionResponseDto, CreateTransactionDto, UpdateTransactionDto, CategoryResponseDto, TransactionSummaryDto } from '@/services/api'
 
 export default function Home() {
   const [transactions, setTransactions] = useState<TransactionResponseDto[]>([])
@@ -15,6 +14,7 @@ export default function Home() {
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [categories, setCategories] = useState<CategoryResponseDto[]>([])
+
 
   // Load data from API
   useEffect(() => {
@@ -26,13 +26,8 @@ export default function Home() {
           transactionsApi.transactionControllerGetSummary(),
           categoriesApi.categoryControllerFindAll(),
         ])
-        setTransactions(transactionsData.transactions || [])
-        setSummary({
-          totalIncome: summaryData.totalIncome || 0,
-          totalExpenses: summaryData.totalExpenses || 0,
-          netAmount: summaryData.netAmount || 0,
-          transactionCount: summaryData.transactionCount || 0
-        })
+        setTransactions(transactionsData)
+        setSummary(summaryData)
         setCategories(categoriesData)
       } catch (error) {
         console.error('Failed to load data:', error)
@@ -42,7 +37,7 @@ export default function Home() {
           totalIncome: 0,
           totalExpenses: 0,
           netAmount: 0,
-          transactionCount: 0,
+          count: 0,
         })
         setCategories([])
       } finally {
@@ -74,12 +69,7 @@ export default function Home() {
       
       // Refresh summary
       const summaryData = await transactionsApi.transactionControllerGetSummary()
-      setSummary({
-        totalIncome: summaryData.totalIncome || 0,
-        totalExpenses: summaryData.totalExpenses || 0,
-        netAmount: summaryData.netAmount || 0,
-        transactionCount: summaryData.transactionCount || 0
-      })
+      setSummary(summaryData)
       
       setShowForm(false)
     } catch (error) {
@@ -117,12 +107,7 @@ export default function Home() {
       
       // Refresh summary
       const summaryData = await transactionsApi.transactionControllerGetSummary()
-      setSummary({
-        totalIncome: summaryData.totalIncome || 0,
-        totalExpenses: summaryData.totalExpenses || 0,
-        netAmount: summaryData.netAmount || 0,
-        transactionCount: summaryData.transactionCount || 0
-      })
+      setSummary(summaryData)
       
       setEditingTransaction(null)
       setEditingTransactionId(null)
@@ -145,12 +130,7 @@ export default function Home() {
       
       // Refresh summary
       const summaryData = await transactionsApi.transactionControllerGetSummary()
-      setSummary({
-        totalIncome: summaryData.totalIncome || 0,
-        totalExpenses: summaryData.totalExpenses || 0,
-        netAmount: summaryData.netAmount || 0,
-        transactionCount: summaryData.transactionCount || 0
-      })
+      setSummary(summaryData)
     } catch (error) {
       console.error('Failed to delete transaction:', error)
       alert('Failed to delete transaction. Please try again.')

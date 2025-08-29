@@ -15,29 +15,24 @@ describe('Transaction Fetch Operations Contract Tests', () => {
   describe('Fetch Transactions', () => {
     describe('Given a successful API response', () => {
       describe('When fetching all transactions', () => {
-        it('Then it should return a list of transactions with pagination', async () => {
+        it('Then it should return a list of transactions', async () => {
           // Arrange: Mock successful HTTP response
-          const mockResponse = {
-            transactions: [
-              {
-                id: '123e4567-e89b-12d3-a456-426614174000',
-                description: 'Monthly Salary',
-                expression: '3500',
-                amount: 3500,
-                categoryId: 'cat-123',
-                categoryName: 'Salary',
-                notes: 'January 2024 salary',
-                frequency: 'month',
-                userId: 'user-123',
-                createdAt: new Date('2024-01-15T10:00:00Z'),
-                updatedAt: new Date('2024-01-15T10:00:00Z'),
-                normalizedAmount: 3500
-              }
-            ],
-            total: 1,
-            page: 1,
-            limit: 10
-          }
+          const mockResponse = [
+            {
+              id: '123e4567-e89b-12d3-a456-426614174000',
+              description: 'Monthly Salary',
+              expression: '3500',
+              amount: 3500,
+              categoryId: 'cat-123',
+              categoryName: 'Salary',
+              notes: 'January 2024 salary',
+              frequency: 'month',
+              userId: 'user-123',
+              createdAt: new Date('2024-01-15T10:00:00Z'),
+              updatedAt: new Date('2024-01-15T10:00:00Z'),
+              normalizedAmount: 3500
+            }
+          ]
 
           mockFetch.mockResolvedValueOnce({
             ok: true,
@@ -47,11 +42,11 @@ describe('Transaction Fetch Operations Contract Tests', () => {
           })
 
           // Act: Call the API
-          const result = await transactionsApi.transactionControllerFindAll({ page: 1, limit: 10 })
+          const result = await transactionsApi.transactionControllerFindAll()
 
           // Assert: Verify the contract
           expect(mockFetch).toHaveBeenCalledWith(
-            expect.stringContaining('/transactions?page=1&limit=10'),
+            expect.stringContaining('/transactions'),
             expect.objectContaining({
               method: 'GET',
               headers: expect.objectContaining({
@@ -60,9 +55,8 @@ describe('Transaction Fetch Operations Contract Tests', () => {
             })
           )
           expect(result).toEqual(mockResponse)
-          expect(result.transactions).toBeDefined()
-          expect(result.transactions!).toHaveLength(1)
-          expect(result.transactions![0]).toMatchObject({
+          expect(result).toHaveLength(1)
+          expect(result[0]).toMatchObject({
             id: expect.any(String),
             description: expect.any(String),
             amount: expect.any(Number),
@@ -128,9 +122,9 @@ describe('Transaction Fetch Operations Contract Tests', () => {
           })
 
           // Act & Assert: Verify error handling
-          await expect(transactionsApi.transactionControllerFindAll({ page: 1, limit: 10 })).rejects.toThrow()
+          await expect(transactionsApi.transactionControllerFindAll()).rejects.toThrow()
           expect(mockFetch).toHaveBeenCalledWith(
-            expect.stringContaining('/transactions?page=1&limit=10'),
+            expect.stringContaining('/transactions'),
             expect.any(Object)
           )
         })
