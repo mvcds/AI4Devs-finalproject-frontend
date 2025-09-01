@@ -42,8 +42,6 @@
     "typescript": "^5"
   },
   "optionalDependencies": {
-    "@next/swc-linux-arm64-musl": "^15.4.6",
-    "ai4devs-api-client": "~1.0.0",
-    "class-validator": "^0.14.2"
+    "ai4devs-api-client": "~1.0.0"
   }
 }
