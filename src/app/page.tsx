@@ -205,6 +205,7 @@ export default function Home() {
                   onCancel={handleCancel}
                   initialData={editingTransaction || undefined}
                   isLoading={isLoading}
+                  currentTransactionId={editingTransactionId || undefined}
                 />
               </div>
             </div>

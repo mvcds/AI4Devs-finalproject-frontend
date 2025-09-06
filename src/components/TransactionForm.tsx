@@ -3,7 +3,8 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { useForm } from 'react-hook-form'
 import { Save, X } from 'lucide-react'
-import { categoriesApi, transactionsApi, FREQUENCIES, FREQUENCY_LABELS, TransactionControllerEvaluateExpressionFrequencyEnum, CategoryResponseDto, CreateTransactionDto, CreateTransactionDtoFrequencyEnum, ExpressionResult } from '@/services/api'
+import { categoriesApi, transactionsApi, FREQUENCIES, FREQUENCY_LABELS, TransactionControllerEvaluateExpressionFrequencyEnum, CategoryResponseDto, CreateTransactionDto, CreateTransactionDtoFrequencyEnum, ExpressionResult, TransactionResponseDto } from '@/services/api'
+import { ExpressionComponent } from './ExpressionComponent'
 
 export type TransactionFormData = CreateTransactionDto;
 
@@ -12,12 +13,14 @@ interface TransactionFormProps {
   onCancel: () => void
   initialData?: Partial<TransactionFormData>
   isLoading?: boolean
+  currentTransactionId?: string
 }
 
 export const TransactionForm: React.FC<TransactionFormProps> = ({
   onSubmit,
   onCancel,
   initialData,
+  currentTransactionId,
 }) => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [categories, setCategories] = useState<CategoryResponseDto[]>([])
@@ -25,16 +28,19 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
   const [categoriesError, setCategoriesError] = useState<string | null>(null)
   const [expressionEvaluation, setExpressionEvaluation] = useState<ExpressionResult | null>(null)
   const [isEvaluatingExpression, setIsEvaluatingExpression] = useState(false)
+  const [availableTransactions, setAvailableTransactions] = useState<TransactionResponseDto[]>([])
+  const [isLoadingTransactions, setIsLoadingTransactions] = useState(true)
 
   const {
     register,
     handleSubmit,
     watch,
     reset,
+    setValue,
     formState: { errors, isDirty, touchedFields },
     setError,
   } = useForm<TransactionFormData>({
-    mode: 'onBlur', // Only validate on blur, not on change
+    mode: 'onChange', // Validate on change to match our custom validation
     defaultValues: {
       description: initialData?.description || '',
       expression: initialData?.expression || '',
@@ -166,9 +172,8 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       const validationResult = validateTransactionForm(formData)
       console.log('Validation result:', validationResult)
       
-      // Don't clear errors here to prevent infinite loops
-      // Only set errors if validation fails and they don't already exist
-      if (!validationResult.isValid && validationResult.errorMessages) {
+      // Only set errors if validation fails and user has interacted with the form
+      if (!validationResult.isValid && validationResult.errorMessages && (isDirty || Object.keys(touchedFields).length > 0)) {
         // Generic error handling - don't rely on specific error message text
         if (validationResult.errorMessages.some((m: string) => m.toLowerCase().includes('description')) && !errors.description) {
           setError('description', { message: 'Description is required and must be valid' })
@@ -190,50 +195,47 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
       // Fallback validation - check if required fields have values
       return simpleValidation(formData)
     }
-  }, [watch, setError, errors, simpleValidation])
+  }, [watch, setError, errors, simpleValidation, isDirty, touchedFields])
 
   const handleFormSubmit = async (data: TransactionFormData) => {
+    debugger; // Debug breakpoint
+    console.log('handleFormSubmit started with data:', data)
     try {
-      // Ensure form is valid before submitting
-      if (!isFormValid) {
-        console.warn('Form is not valid, preventing submission.')
-        return;
-      }
-
       setIsSubmitting(true)
       console.log('Form submitting with data:', data)
       console.log('Selected categoryId:', data.categoryId)
+      console.log('About to call onSubmit...')
       await onSubmit(data)
+      console.log('onSubmit completed successfully')
     } catch (error) {
       // Error is handled by the parent component
       console.error('Submission error:', error)
     } finally {
+      console.log('Setting isSubmitting to false')
       setIsSubmitting(false)
     }
   }
 
-  // Run validation when form values change - only after user interaction
+  // Run validation when form values change
   useEffect(() => {
-    // Only run validation if the user has interacted with the form
-    if (isDirty || Object.keys(touchedFields).length > 0) {
-      const runValidation = () => {
-        console.log('Running validation...')
-        const isValid = validateForm()
-        console.log('Validation result:', isValid)
-        setIsFormValid(isValid)
-      }
-      
-      // Use a timeout to debounce validation and prevent excessive calls
-      const timeoutId = setTimeout(runValidation, 100)
-      return () => clearTimeout(timeoutId)
+    const runValidation = () => {
+      console.log('Running validation...')
+      const isValid = validateForm()
+      console.log('Validation result:', isValid)
+      setIsFormValid(isValid)
     }
-  }, [watchedDescription, watchedExpression, watch('categoryId'), watch('frequency'), validateForm, isDirty, touchedFields])
+    
+    // Use a timeout to debounce validation and prevent excessive calls
+    const timeoutId = setTimeout(runValidation, 50)
+    return () => clearTimeout(timeoutId)
+  }, [watchedDescription, watchedExpression, watch('categoryId'), watch('frequency'), validateForm])
 
   // Run initial validation when form loads - but don't show errors initially
   useEffect(() => {
     if (categories.length > 0) {
-      // Set form as initially valid to prevent showing errors on mount
-      setIsFormValid(true)
+      // Set form as initially invalid since required fields are empty
+      // This will be updated when user starts filling the form
+      setIsFormValid(false)
     }
   }, [categories])
 
@@ -255,6 +257,29 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
     fetchCategories()
   }, [])
 
+  // Fetch available transactions for ExpressionComponent
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      try {
+        setIsLoadingTransactions(true)
+        const fetchedTransactions = await transactionsApi.transactionControllerFindAll()
+        setAvailableTransactions(fetchedTransactions)
+      } catch (error) {
+        console.error('Failed to load transactions:', error)
+        setAvailableTransactions([])
+      } finally {
+        setIsLoadingTransactions(false)
+      }
+    }
+
+    fetchTransactions()
+  }, [])
+
+  // Handle expression change from ExpressionComponent
+  const handleExpressionChange = (expression: string) => {
+    setValue('expression', expression, { shouldValidate: true, shouldDirty: true })
+  }
+
   return (
     <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -264,7 +289,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             Description *
           </label>
           <input
-            {...register('description')}
+            {...register('description', { required: 'Description is required' })}
             type="text"
             id="description"
             className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
@@ -283,18 +308,22 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
           <label htmlFor="expression" className="block text-sm font-medium text-gray-700 mb-2">
             Value *
           </label>
+          {/* Hidden input for react-hook-form validation */}
           <input
-            {...register('expression')}
-            type="text"
-            id="expression"
-            className={`w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-              errors.expression ? 'border-red-500' : 'border-gray-300'
-            }`}
-            placeholder="e.g., 5000, -200, @salary_id * 0.12"
-            data-testid="expression-input"
+            {...register('expression', { required: 'Expression is required' })}
+            type="hidden"
+            value={watchedExpression || ''}
+          />
+          <ExpressionComponent
+            options={availableTransactions}
+            value={watchedExpression || ''}
+            onChange={handleExpressionChange}
+            placeholder="e.g., 5000, -200, $txn-1 * 0.12"
+            className={`${errors.expression ? 'border-red-500' : ''}`}
+            excludeTransactionId={currentTransactionId}
           />
           <p className="mt-1 text-xs text-gray-500">
-            Enter a number (e.g., 5000 for income, -200 for expense) or an expression (e.g., @salary * 0.12)
+            Enter a number (e.g., 5000 for income, -200 for expense) or an expression with transaction chips (e.g., $salary * 0.12)
           </p>
           {errors.expression && (
             <p className="mt-1 text-sm text-red-600" data-testid="error-message">{errors.expression.message}</p>
@@ -355,7 +384,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             Frequency *
           </label>
           <select
-            {...register('frequency')}
+            {...register('frequency', { required: 'Frequency is required' })}
             id="frequency"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             data-testid="frequency-select"
@@ -377,7 +406,7 @@ export const TransactionForm: React.FC<TransactionFormProps> = ({
             Category *
           </label>
           <select
-            {...register('categoryId')}
+            {...register('categoryId', { required: 'Category is required' })}
             id="categoryId"
             className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             disabled={isLoadingCategories}
