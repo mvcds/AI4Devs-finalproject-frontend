@@ -8,7 +8,7 @@ import { transactionsApi, categoriesApi, TransactionResponseDto, CreateTransacti
 
 export default function Home() {
   const [transactions, setTransactions] = useState<TransactionResponseDto[]>([])
-  const [summary, setSummary] = useState<import('../components/SummaryCards').TransactionSummary | null>(null)
+  const [summary, setSummary] = useState<TransactionSummaryDto | null>(null)
   const [showForm, setShowForm] = useState(false)
   const [editingTransaction, setEditingTransaction] = useState<TransactionFormData | null>(null)
   const [editingTransactionId, setEditingTransactionId] = useState<string | null>(null)
@@ -26,7 +26,17 @@ export default function Home() {
           transactionsApi.transactionControllerGetSummary(),
           categoriesApi.categoryControllerFindAll(),
         ])
-        setTransactions(transactionsData)
+        // Populate category names and colors for transactions
+        const transactionsWithCategories = transactionsData.map(transaction => {
+          const category = categoriesData.find(cat => cat.id === transaction.categoryId)
+          return {
+            ...transaction,
+            categoryName: category?.name || 'Unknown Category',
+            categoryColor: category?.color || '#6B7280'
+          }
+        })
+        
+        setTransactions(transactionsWithCategories)
         setSummary(summaryData)
         setCategories(categoriesData)
       } catch (error) {
@@ -58,11 +68,12 @@ export default function Home() {
         }
       })
       
-      // Ensure the new transaction has categoryName populated
+      // Ensure the new transaction has categoryName and categoryColor populated
       const category = categories.find(cat => cat.id === newTransaction.categoryId)
       const transactionWithCategory = {
         ...newTransaction,
-        categoryName: category?.name || 'Unknown Category'
+        categoryName: category?.name || 'Unknown Category',
+        categoryColor: category?.color || '#6B7280'
       }
       
       setTransactions(prev => [transactionWithCategory, ...prev])
@@ -94,11 +105,12 @@ export default function Home() {
         }
       })
       
-      // Ensure the updated transaction has categoryName populated
+      // Ensure the updated transaction has categoryName and categoryColor populated
       const category = categories.find(cat => cat.id === updatedTransaction.categoryId)
       const transactionWithCategory = {
         ...updatedTransaction,
-        categoryName: category?.name || 'Unknown Category'
+        categoryName: category?.name || 'Unknown Category',
+        categoryColor: category?.color || '#6B7280'
       }
       
       setTransactions(prev => 
@@ -170,10 +182,23 @@ export default function Home() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">Personal Finance Manager</h1>
-          <p className="mt-2 text-gray-600">
-            Track your income and expenses with ease
-          </p>
+          <div className="flex justify-between items-start">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">Personal Finance Manager</h1>
+              <p className="mt-2 text-gray-600">
+                Track your income and expenses with ease
+              </p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <a
+                href="/categories"
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                data-testid="manage-categories-button"
+              >
+                Manage Categories
+              </a>
+            </div>
+          </div>
         </div>
 
         {/* Summary Cards */}
