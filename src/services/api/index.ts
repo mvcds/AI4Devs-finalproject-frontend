@@ -1,5 +1,12 @@
 //@ts-ignore, necessary while BE is not production ready
-import { Configuration, TransactionsApi, CategoriesApi } from 'ai4devs-api-client';
+import { 
+  Configuration, 
+  TransactionsApi, 
+  CategoriesApi,
+  BudgetPercentagesDto,
+  CategoryPercentageDto,
+  FlowPercentageDto
+} from 'ai4devs-api-client';
 
 // Configuration that respects environment variables
 const createApiConfiguration = () => {
@@ -18,6 +25,10 @@ const config = createApiConfiguration();
 
 export const transactionsApi = new TransactionsApi(config);
 export const categoriesApi = new CategoriesApi(config);
+
+
+// Re-export types from generated client
+export type { BudgetPercentagesDto, CategoryPercentageDto, FlowPercentageDto };
 
 //TODO: make them come from BE
 // Export constants that components expect

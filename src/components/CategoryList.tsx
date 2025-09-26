@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { CategoryResponseDto, CategoryResponseDtoFlowEnum } from '@/services/api'
+import React, { useState, useEffect } from 'react'
+import { CategoryResponseDto, CategoryResponseDtoFlowEnum, transactionsApi, BudgetPercentagesDto } from '@/services/api'
 
 interface CategoryListProps {
   categories: CategoryResponseDto[]
@@ -21,6 +21,26 @@ export const CategoryList: React.FC<CategoryListProps> = ({
   const [showFilters, setShowFilters] = useState(false)
   const [flowFilter, setFlowFilter] = useState<'all' | CategoryResponseDtoFlowEnum>('all')
   const [searchTerm, setSearchTerm] = useState('')
+  const [budgetPercentages, setBudgetPercentages] = useState<BudgetPercentagesDto | null>(null)
+  const [percentagesLoading, setPercentagesLoading] = useState(false)
+
+  // Fetch budget percentages when component mounts
+  useEffect(() => {
+    const fetchBudgetPercentages = async () => {
+      try {
+        setPercentagesLoading(true)
+        const data = await transactionsApi.transactionControllerGetBudgetPercentages()
+        setBudgetPercentages(data)
+      } catch (error) {
+        console.error('Failed to fetch budget percentages:', error)
+        // Don't show error to user, just don't display percentages
+      } finally {
+        setPercentagesLoading(false)
+      }
+    }
+
+    fetchBudgetPercentages()
+  }, [])
 
   // Filter categories based on search term and flow filter
   const filteredCategories = categories.filter((category) => {
@@ -63,6 +83,20 @@ export const CategoryList: React.FC<CategoryListProps> = ({
       default:
         return 'text-gray-600 bg-gray-50'
     }
+  }
+
+  // Helper function to get percentage for a category
+  const getCategoryPercentage = (categoryId: string): number | null => {
+    if (!budgetPercentages) return null
+    const categoryPercentage = budgetPercentages.categoryPercentages.find(cp => cp.categoryId === categoryId)
+    return categoryPercentage ? categoryPercentage.percentage : null
+  }
+
+  // Helper function to get percentage for a flow
+  const getFlowPercentage = (flow: CategoryResponseDtoFlowEnum): number | null => {
+    if (!budgetPercentages) return null
+    const flowPercentage = budgetPercentages.flowPercentages.find(fp => fp.flow === flow)
+    return flowPercentage ? flowPercentage.percentage : null
   }
 
   if (isLoading) {
@@ -172,36 +206,50 @@ export const CategoryList: React.FC<CategoryListProps> = ({
           </div>
         ) : (
           <div className="space-y-6">
-            {Object.entries(categoriesByFlow).map(([flow, flowCategories]) => (
-              <div key={flow}>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">
-                  {getFlowLabel(flow as CategoryResponseDtoFlowEnum)}
-                  <span className="ml-2 text-sm text-gray-500">({flowCategories.length})</span>
-                </h3>
+            {Object.entries(categoriesByFlow).map(([flow, flowCategories]) => {
+              const flowPercentage = getFlowPercentage(flow as CategoryResponseDtoFlowEnum)
+              return (
+                <div key={flow}>
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    {getFlowLabel(flow as CategoryResponseDtoFlowEnum)}
+                    <span className="ml-2 text-sm text-gray-500">({flowCategories.length})</span>
+                    {flowPercentage !== null && (
+                      <span className="ml-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {flowPercentage}%
+                      </span>
+                    )}
+                  </h3>
                 <div className="grid gap-3">
-                  {flowCategories.map((category) => (
-                    <div
-                      key={category.id}
-                      className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
-                      data-testid={`category-item-${category.id}`}
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
-                          style={{ backgroundColor: category.color || '#3B82F6' }}
-                          data-testid={`category-color-${category.id}`}
-                        />
-                        <div>
-                          <h4 className="font-medium text-gray-900" data-testid={`category-name-${category.id}`}>
-                            {category.name}
-                          </h4>
-                          {category.description && (
-                            <p className="text-sm text-gray-500" data-testid={`category-description-${category.id}`}>
-                              {category.description}
-                            </p>
-                          )}
+                  {flowCategories.map((category) => {
+                    const categoryPercentage = getCategoryPercentage(category.id)
+                    return (
+                      <div
+                        key={category.id}
+                        className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50"
+                        data-testid={`category-item-${category.id}`}
+                      >
+                        <div className="flex items-center space-x-3">
+                          <div
+                            className="w-4 h-4 rounded-full border-2 border-white shadow-sm"
+                            style={{ backgroundColor: category.color || '#3B82F6' }}
+                            data-testid={`category-color-${category.id}`}
+                          />
+                          <div>
+                            <h4 className="font-medium text-gray-900" data-testid={`category-name-${category.id}`}>
+                              {category.name}
+                              {categoryPercentage !== null && (
+                                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  {categoryPercentage}%
+                                </span>
+                              )}
+                            </h4>
+                            {category.description && (
+                              <p className="text-sm text-gray-500" data-testid={`category-description-${category.id}`}>
+                                {category.description}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                      </div>
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => onEdit(category)}
@@ -219,10 +267,12 @@ export const CategoryList: React.FC<CategoryListProps> = ({
                         </button>
                       </div>
                     </div>
-                  ))}
+                    )
+                  })}
                 </div>
               </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </div>
